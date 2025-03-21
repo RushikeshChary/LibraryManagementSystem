@@ -1,23 +1,14 @@
-
-import mysql from 'mysql2';
 import express from 'express';
 import dotenv from 'dotenv'
-
 dotenv.config();
+import user from "./routes/user.js";
+import book from "./routes/book.js";
+import db from "./db/connection.js";
 
 const app = express();
-
-// Create a MySQL pool connection
-const pool = mysql.createPool({
-    host: process.env.URL,
-    user: process.env.USER,
-    password: process.env.PASS,
-    database: process.env.DATA_BASE
-}).promise();
-
-const Port = process.env.PORT || 3000;
+const Port = process.env.PORT || 8080;
 // Test database connection and start server
-pool.getConnection()
+db.getConnection()
     .then(connection => {
         console.log('Database connected successfully');
         connection.release();
@@ -32,11 +23,28 @@ pool.getConnection()
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
-// Endpoint to get all users from table users
+app.use('/user',user);
 
+app.use('/book', book);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Just to test whether database is working properly.
 app.get('/users', async (req, res) => {
     try {
-        const [rows] = await pool.query("SELECT * FROM users");
+        const [rows] = await db.query("SELECT * FROM users");
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -44,17 +52,7 @@ app.get('/users', async (req, res) => {
     }
 });
 
-// Endpoint to add a new user to table users
 
-app.post('/users', async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
-        await pool.query('INSERT INTO users (name, email, password) VALUES (?,?,?)', [name, email, password]);
-        res.status(201).json({ message: 'User added successfully' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Error adding user' });
-    }
-});
+
 
 
