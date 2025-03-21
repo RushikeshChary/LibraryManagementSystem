@@ -44,7 +44,7 @@ app.use('/book', book);
 //Just to test whether database is working properly.
 app.get('/users', async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT * FROM users");
+        const [rows] = await db.query("SELECT name,email FROM user");
         res.json(rows);
     } catch (err) {
         console.error(err);
