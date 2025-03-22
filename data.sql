@@ -64,9 +64,9 @@ CREATE TABLE book_issue(
     issue_id INTEGER PRIMARY KEY AUTO_INCREMENT,
     user_id INTEGER,
     book_id INTEGER,
-    issue_date DATETIME,
-    return_date DATETIME,
-    fine INTEGER DEFAULT 0,
+    issue_date DATE,
+    return_date DATE,
+    return_status INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES user(user_id),
     FOREIGN KEY (book_id) REFERENCES book(book_id)
 );
@@ -83,37 +83,36 @@ CREATE TABLE fine_due(
 
 
 -- Create a triggers
--- 1. For updating dates.
+-- For filling fines.
 DELIMITER //
-CREATE TRIGGER set_issue_and_return_date_before_insert
+CREATE TRIGGER check_fine_after_update
+AFTER UPDATE ON book_issue
+FOR EACH ROW
+BEGIN
+    DECLARE due_days INT;
+    DECLARE fine_amount INT;
+
+    -- Calculate overdue days (only if return_date is after the expected return_date)
+    IF NEW.return_date IS NOT NULL AND NEW.return_date > OLD.return_date THEN
+        SET due_days = DATEDIFF(NEW.return_date, OLD.return_date);
+
+        -- Assuming fine is 10 per day
+        SET fine_amount = due_days * 10;
+
+        -- Insert record into fine_due table
+        INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount)
+        VALUES (NEW.user_id, NEW.issue_id, NEW.return_date, fine_amount);
+    END IF;
+END;
+//
+DELIMITER ;
+
+-- For updating return date.
+CREATE TRIGGER set_return_date
 BEFORE INSERT ON book_issue
 FOR EACH ROW
-BEGIN
-    IF NEW.issue_date IS NULL THEN
-        SET NEW.issue_date = NOW();
-    END IF;
-    
-    IF NEW.return_date IS NULL THEN
-        SET NEW.return_date = DATE_ADD(NEW.issue_date, INTERVAL 14 DAY);
-    END IF;
-END;
-//
-DELIMITER ;
+SET NEW.return_date = DATE_ADD(NEW.issue_date, INTERVAL 14 DAY);
 
--- 2. For updating dates in book_request
-DELIMITER //
-CREATE TRIGGER update_request_date_before_insert
-BEFORE INSERT ON book_request
-FOR EACH ROW
-BEGIN
-    IF NEW.request_date IS NULL THEN
-        SET NEW.request_date = NOW();
-    END IF;
-END;
-//
-DELIMITER ;
-
--- 3.
 
 -- Insert sample data
 INSERT INTO category (category_name) VALUES ('Fiction'), ('Science'), ('History'), ('Technology'), ('Philosophy'), ('Mathematics'), ('Psychology'), ('Engineering'), ('Medicine'), ('Art');
@@ -150,8 +149,9 @@ INSERT INTO user (name, email, password, mobile_no) VALUES
 ('Ivy', 'ivy@example.com', 'ivypass', '3344556677'),
 ('Jack', 'jack@example.com', 'jackpass', '4455667788');
 
--- INSERT INTO book_request (user_id, book_id) VALUES (1, 1), (2, 2), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 10), (10, 3);
+INSERT INTO book_issue (user_id, book_id, issue_date, return_date) VALUES (1, 1, '2025-03-01', '2025-03-10'), (2, 2, '2025-03-05', '2025-03-15'), (3, 4, '2025-03-10', '2025-03-20'), (4, 5, '2025-03-12', '2025-03-22');
 
-INSERT INTO book_issue (user_id, book_id, issue_date, return_date, fine) VALUES (1, 1, '2025-03-01', '2025-03-10', 0), (2, 2, '2025-03-05', '2025-03-15', 5), (3, 4, '2025-03-10', '2025-03-20', 0), (4, 5, '2025-03-12', '2025-03-22', 10);
+-- INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount) VALUES (2, 2, '2025-03-16', 5), (4, 4, '2025-03-23', 10);
 
-INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount) VALUES (2, 2, '2025-03-16', 5), (4, 4, '2025-03-23', 10);
+INSERT INTO book_request (user_id, book_id, request_date) VALUES (2,4,'2025-03-16'),(4,4,'2025-03-15'),(8,2,'2025-03-20'),(1,2,'2025-03-17');
+
