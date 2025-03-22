@@ -51,6 +51,19 @@ router.post('/issue', async (req, res)=>{
         if (!book_id ||!user_id) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
+        // Check whether this user has already issued this book or not.
+        const query_check = "SELECT book_id FROM book_issue WHERE book_id =? AND user_id =?";
+        const [result] = await db.query(query_check, [book_id, user_id]);
+        if(result.length > 0){
+            return res.status(400).json({ message: 'This user has already issued this book' });
+        }
+        // Check whether this book is available or not.
+        // Decrease the number of copies available for this book.
+        // Add this request into book_request.
+        // If book is available, issue the book and return 200 status code.
+        // If book is not available, add this request into book_request and return 400 status code.
+
+        // Add this request into book_request.
         const availablity_check = "SELECT book_id FROM book as b WHERE b.book_id = ? AND b.copies_available > 0";
         const [res] = await db.query(availablity_check, [book_id]);
         if(res.length > 0)
@@ -88,7 +101,7 @@ router.post('/issue', async (req, res)=>{
 //         const [res] = await db.query(issue_check, [book_id, user_id]);
 //         if(res.length == 0)
 //         {
-//             return res.status(400).json({ message: 'This book is not issued by this user' });
+//             return res.status(400).json({ message: 'This book is not issued by you' });
 //         }
 //         // Update the book's copies_available.
 //         const query = "UPDATE book SET copies_available = copies_available + 1 WHERE book_id =?";
