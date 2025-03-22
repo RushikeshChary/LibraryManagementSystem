@@ -55,7 +55,7 @@ CREATE TABLE user(
 CREATE TABLE book_request(
     user_id INTEGER,
     book_id INTEGER,
-    request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    request_date DATETIME,
     FOREIGN KEY (user_id) REFERENCES user(user_id),
     FOREIGN KEY (book_id) REFERENCES book(book_id)
 );
@@ -64,7 +64,7 @@ CREATE TABLE book_issue(
     issue_id INTEGER PRIMARY KEY AUTO_INCREMENT,
     user_id INTEGER,
     book_id INTEGER,
-    issue_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    issue_date DATETIME,
     return_date DATETIME,
     fine INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES user(user_id),
@@ -80,6 +80,40 @@ CREATE TABLE fine_due(
     FOREIGN KEY (user_id) REFERENCES user(user_id),
     FOREIGN KEY (issue_id) REFERENCES book_issue(issue_id)
 );
+
+
+-- Create a triggers
+-- 1. For updating dates.
+DELIMITER //
+CREATE TRIGGER set_issue_and_return_date_before_insert
+BEFORE INSERT ON book_issue
+FOR EACH ROW
+BEGIN
+    IF NEW.issue_date IS NULL THEN
+        SET NEW.issue_date = NOW();
+    END IF;
+    
+    IF NEW.return_date IS NULL THEN
+        SET NEW.return_date = DATE_ADD(NEW.issue_date, INTERVAL 14 DAY);
+    END IF;
+END;
+//
+DELIMITER ;
+
+-- 2. For updating dates in book_request
+DELIMITER //
+CREATE TRIGGER update_request_date_before_insert
+BEFORE INSERT ON book_request
+FOR EACH ROW
+BEGIN
+    IF NEW.request_date IS NULL THEN
+        SET NEW.request_date = NOW();
+    END IF;
+END;
+//
+DELIMITER ;
+
+-- 3.
 
 -- Insert sample data
 INSERT INTO category (category_name) VALUES ('Fiction'), ('Science'), ('History'), ('Technology'), ('Philosophy'), ('Mathematics'), ('Psychology'), ('Engineering'), ('Medicine'), ('Art');
