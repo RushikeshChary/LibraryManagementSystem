@@ -6,8 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-const serverUrl = 'http://localhost:3000'; // Adjust this if needed
-
+const serverUrl = 'http://localhost:3000'; // Adjust if needed
 let userId = null; // Store logged-in user's ID
 
 // Hardcoded test credentials
@@ -17,13 +16,36 @@ const hardcodedUser = {
     userId: "user999"
 };
 
-//Login to library.
-function login() {
-    console.log("\n🔐 Welcome to the Library Management System. Please log in.");
+// Login / Register Menu
+function showAuthMenu() {
+    console.log("\n🔐 Welcome to the Library Management System.");
+    console.log("1️⃣ Login");
+    console.log("2️⃣ Register");
+    console.log("3️⃣ Exit");
 
+    rl.question("👉 Enter your choice: ", choice => {
+        switch (choice) {
+            case '1':
+                login();
+                break;
+            case '2':
+                register();
+                break;
+            case '3':
+                console.log("👋 Exiting...");
+                rl.close();
+                break;
+            default:
+                console.log("❌ Invalid choice. Try again.");
+                showAuthMenu();
+        }
+    });
+}
+
+// Login to library
+function login() {
     rl.question("👤 Enter Username: ", username => {
         rl.question("🔑 Enter Password: ", password => {
-            // Hardcoded login access
             if (username === hardcodedUser.username && password === hardcodedUser.password) {
                 userId = hardcodedUser.userId;
                 console.log(`✅ Hardcoded Login Successful! Welcome, ${username}.`);
@@ -39,7 +61,24 @@ function login() {
                 })
                 .catch(error => {
                     console.error("❌ Login Failed:", error.response?.data?.error || error.message);
-                    login(); 
+                    showAuthMenu();
+                });
+        });
+    });
+}
+
+// Register a new user
+function register() {
+    rl.question("👤 Choose a Username: ", username => {
+        rl.question("🔑 Choose a Password: ", password => {
+            axios.post(`${serverUrl}/register`, { username, password })
+                .then(response => {
+                    console.log(`✅ Registration Successful! You can now log in.`);
+                    showAuthMenu();
+                })
+                .catch(error => {
+                    console.error("❌ Registration Failed:", error.response?.data?.error || error.message);
+                    showAuthMenu();
                 });
         });
     });
@@ -51,7 +90,8 @@ function showMenu() {
     console.log("1️⃣ Search for a Book 🔍");
     console.log("2️⃣ Borrow a Book");
     console.log("3️⃣ Return a Book");
-    console.log("4️⃣ Logout");
+    console.log("4️⃣ Pay Fine 💰");
+    console.log("5️⃣ Logout");
     rl.question("👉 Enter your choice: ", handleUserInput);
 }
 
@@ -67,9 +107,12 @@ function handleUserInput(choice) {
             showIssuedBooks();
             break;
         case '4':
+            checkFine();
+            break;
+        case '5':
             console.log("👋 Logging out...");
             userId = null;
-            login();
+            showAuthMenu();
             break;
         default:
             console.log("❌ Invalid choice. Try again.");
@@ -123,7 +166,7 @@ function searchBooks(field, value) {
         .catch(error => console.error("⚠️ Error searching books:", error.message));
 }
 
-// Borrow /request a book
+// Borrow a book
 function borrowBook(bookId) {
     axios.post(`${serverUrl}/borrow`, { id: bookId, userId })
         .then(response => {
@@ -136,7 +179,7 @@ function borrowBook(bookId) {
         });
 }
 
-// Show Issued Books & Ask Which to Return
+// Show issued books & ask which to return
 function showIssuedBooks() {
     axios.get(`${serverUrl}/issued-books`, { params: { userId } })
         .then(response => {
@@ -161,7 +204,7 @@ function showIssuedBooks() {
         });
 }
 
-// Return a book 
+// Return a book
 function returnBook(bookId) {
     axios.post(`${serverUrl}/return`, { id: bookId, userId })
         .then(response => {
@@ -174,5 +217,45 @@ function returnBook(bookId) {
         });
 }
 
+// Check fine
+function checkFine() {
+    axios.get(`${serverUrl}/fine`, { params: { userId } })
+        .then(response => {
+            const fineAmount = response.data.fine;
+            if (fineAmount === 0) {
+                console.log("✅ No outstanding fine.");
+                showMenu();
+                return;
+            }
+
+            console.log(`💰 You have a pending fine of ₹${fineAmount}.`);
+            rl.question("⚠️ Do you want to pay the fine? (yes/no): ", answer => {
+                if (answer.toLowerCase() === 'yes') {
+                    payFine();
+                } else {
+                    console.log("❌ Fine not paid.");
+                    showMenu();
+                }
+            });
+        })
+        .catch(error => {
+            console.error("⚠️ Error checking fine:", error.message);
+            showMenu();
+        });
+}
+
+// Pay fine
+function payFine() {
+    axios.post(`${serverUrl}/pay-fine`, { userId })
+        .then(response => {
+            console.log(`✔️ ${response.data.message}`);
+            showMenu();
+        })
+        .catch(error => {
+            console.error(`⚠️ ${error.response?.data?.error || error.message}`);
+            showMenu();
+        });
+}
+
 // Phirse shuru
-login();
+showAuthMenu();
