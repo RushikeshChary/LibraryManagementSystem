@@ -19,9 +19,9 @@ const hardcodedUser = {
 // Login / Register Menu
 function showAuthMenu() {
     console.log("\n🔐 Welcome to the Library Management System.");
-    console.log("1️⃣ Login");
-    console.log("2️⃣ Register");
-    console.log("3️⃣ Exit");
+    console.log("1️⃣  Login");
+    console.log("2️⃣  Register");
+    console.log("3️⃣  Exit");
 
     rl.question("👉 Enter your choice: ", choice => {
         switch (choice) {
@@ -32,11 +32,11 @@ function showAuthMenu() {
                 register();
                 break;
             case '3':
-                console.log("👋 Exiting...");
+                console.log("👋  Exiting...");
                 rl.close();
                 break;
             default:
-                console.log("❌ Invalid choice. Try again.");
+                console.log("❌  Invalid choice. Try again.");
                 showAuthMenu();
         }
     });
@@ -87,11 +87,11 @@ function register() {
 // Menu
 function showMenu() {
     console.log("\n📚 Library Management System");
-    console.log("1️⃣ Search for a Book 🔍");
-    console.log("2️⃣ Borrow a Book");
-    console.log("3️⃣ Return a Book");
-    console.log("4️⃣ Pay Fine 💰");
-    console.log("5️⃣ Logout");
+    console.log("1️⃣  Search for a Book 🔍");
+    console.log("2️⃣  Borrow a Book");
+    console.log("3️⃣  Return a Book");
+    console.log("4️⃣  Pay Fine 💰");
+    console.log("5️⃣  Logout");
     rl.question("👉 Enter your choice: ", handleUserInput);
 }
 
@@ -123,10 +123,10 @@ function handleUserInput(choice) {
 // Search for books
 function searchBookMenu() {
     console.log("\n🔎 Search Books");
-    console.log("1️⃣ By Title");
-    console.log("2️⃣ By Author");
-    console.log("3️⃣ By Category");
-    console.log("4️⃣ Back to Main Menu");
+    console.log("1️⃣  By Title");
+    console.log("2️⃣  By Author");
+    console.log("3️⃣  By Category");
+    console.log("4️⃣  Back to Main Menu");
 
     rl.question("👉 Enter your search choice: ", choice => {
         switch (choice) {
@@ -154,7 +154,7 @@ function searchBooks(field, value) {
     axios.get(`${serverUrl}/search`, { params: { field, value } })
         .then(response => {
             if (response.data.length === 0) {
-                console.log("⚠️ No books found.");
+                console.log("⚠️  No books found.");
             } else {
                 console.log("\n🔍 Search Results:");
                 response.data.forEach(book => {
@@ -163,7 +163,10 @@ function searchBooks(field, value) {
             }
             showMenu();
         })
-        .catch(error => console.error("⚠️ Error searching books:", error.message));
+        .catch(error => {
+            console.error("⚠️  Error searching books:", error.message);
+            showMenu();
+        });
 }
 
 // Borrow a book
@@ -174,7 +177,7 @@ function borrowBook(bookId) {
             showMenu();
         })
         .catch(error => {
-            console.error(`⚠️ ${error.response?.data?.error || error.message}`);
+            console.error(`⚠️  ${error.response?.data?.error || error.message}`);
             showMenu();
         });
 }
@@ -184,7 +187,7 @@ function showIssuedBooks() {
     axios.get(`${serverUrl}/issued-books`, { params: { userId } })
         .then(response => {
             if (response.data.length === 0) {
-                console.log("⚠️ No books issued to you.");
+                console.log("⚠️  No books issued to you.");
                 showMenu();
                 return;
             }
@@ -199,7 +202,7 @@ function showIssuedBooks() {
             });
         })
         .catch(error => {
-            console.error("⚠️ Error fetching issued books:", error.message);
+            console.error("⚠️  Error fetching issued books:", error.message);
             showMenu();
         });
 }
@@ -212,7 +215,7 @@ function returnBook(bookId) {
             showMenu();
         })
         .catch(error => {
-            console.error(`⚠️ ${error.response?.data?.error || error.message}`);
+            console.error(`⚠️  ${error.response?.data?.error || error.message}`);
             showMenu();
         });
 }
@@ -229,7 +232,7 @@ function checkFine() {
             }
 
             console.log(`💰 You have a pending fine of ₹${fineAmount}.`);
-            rl.question("⚠️ Do you want to pay the fine? (yes/no): ", answer => {
+            rl.question("⚠️  Do you want to pay the fine? (yes/no): ", answer => {
                 if (answer.toLowerCase() === 'yes') {
                     payFine();
                 } else {
@@ -239,7 +242,7 @@ function checkFine() {
             });
         })
         .catch(error => {
-            console.error("⚠️ Error checking fine:", error.message);
+            console.error("⚠️  Error checking fine:", error.message);
             showMenu();
         });
 }
@@ -252,7 +255,7 @@ function payFine() {
             showMenu();
         })
         .catch(error => {
-            console.error(`⚠️ ${error.response?.data?.error || error.message}`);
+            console.error(`⚠️  ${error.response?.data?.error || error.message}`);
             showMenu();
         });
 }
