@@ -11,7 +11,7 @@ let userId = null; // Store logged-in user's ID
 
 // Hardcoded test credentials
 const hardcodedUser = {
-    username: "testuser",
+    email: "testuser",
     password: "test123",
     userId: "user999"
 };
@@ -22,6 +22,7 @@ function showAuthMenu() {
     console.log("1️⃣  Login");
     console.log("2️⃣  Register");
     console.log("3️⃣  Exit");
+    console.log("4. Search for a book");
 
     rl.question("👉 Enter your choice: ", choice => {
         switch (choice) {
@@ -35,6 +36,9 @@ function showAuthMenu() {
                 console.log("👋  Exiting...");
                 rl.close();
                 break;
+            case '4':
+                searchBookMenu();
+                break;
             default:
                 console.log("❌  Invalid choice. Try again.");
                 showAuthMenu();
@@ -44,18 +48,18 @@ function showAuthMenu() {
 
 // Login to library
 function login() {
-    rl.question("👤 Enter Username: ", username => {
+    rl.question("👤 Enter email: ", email => {
         rl.question("🔑 Enter Password: ", password => {
-            if (username === hardcodedUser.username && password === hardcodedUser.password) {
+            if (email === hardcodedUser.email && password === hardcodedUser.password) {
                 userId = hardcodedUser.userId;
-                console.log(`✅ Hardcoded Login Successful! Welcome, ${username}.`);
+                console.log(`✅ Hardcoded Login Successful! Welcome, ${userId}.`);
                 showMenu();
                 return;
             }
-
-            axios.post(`${serverUrl}/login`, { username, password })
+            axios.post(`${serverUrl}/user/login`, { email, password })
                 .then(response => {
                     userId = response.data.userId; 
+                    const username = response.data.username;
                     console.log(`✅ Login Successful! Welcome, ${username}.`);
                     showMenu();
                 })
@@ -69,9 +73,9 @@ function login() {
 
 // Register a new user
 function register() {
-    rl.question("👤 Choose a Username: ", username => {
+    rl.question("👤 Choose a email: ", email => {
         rl.question("🔑 Choose a Password: ", password => {
-            axios.post(`${serverUrl}/register`, { username, password })
+            axios.post(`${serverUrl}/user/register`, { email, password })
                 .then(response => {
                     console.log(`✅ Registration Successful! You can now log in.`);
                     showAuthMenu();
@@ -151,15 +155,16 @@ function searchBookMenu() {
 
 //search through fields.
 function searchBooks(field, value) {
-    axios.get(`${serverUrl}/search`, { params: { field, value } })
+    axios.get(`${serverUrl}/book/search`, { params: { field, value } })
         .then(response => {
             if (response.data.length === 0) {
                 console.log("⚠️  No books found.");
             } else {
                 console.log("\n🔍 Search Results:");
-                response.data.forEach(book => {
-                    console.log(`${book.id}. ${book.title} by ${book.author} [Category: ${book.category}] (${book.available ? '✅ Available' : '❌ Borrowed'})`);
-                });
+                // response.data.forEach(book => {
+                //     console.log(`${book.id}. ${book.title} by ${book.author} [Category: ${book.category}] (${book.copies_available ? '✅ Available' : '❌ Borrowed'})`);
+                // });
+                console.log(response.data);
             }
             showMenu();
         })
@@ -171,7 +176,7 @@ function searchBooks(field, value) {
 
 // Borrow a book
 function borrowBook(bookId) {
-    axios.post(`${serverUrl}/borrow`, { id: bookId, userId })
+    axios.post(`${serverUrl}/book/issue`, { id: bookId, userId })
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();
@@ -184,7 +189,7 @@ function borrowBook(bookId) {
 
 // Show issued books & ask which to return
 function showIssuedBooks() {
-    axios.get(`${serverUrl}/issued-books`, { params: { userId } })
+    axios.get(`${serverUrl}/book/issued-books`, { params: { userId } })
         .then(response => {
             if (response.data.length === 0) {
                 console.log("⚠️  No books issued to you.");
@@ -193,9 +198,10 @@ function showIssuedBooks() {
             }
 
             console.log("\n📚 Your Issued Books:");
-            response.data.forEach(book => {
-                console.log(`${book.id}. ${book.title} by ${book.author} [Category: ${book.category}]`);
-            });
+            // response.data.forEach(book => {
+            //     console.log(`${book.id}. ${book.title} by ${book.author} [Category: ${book.category}]`);
+            // });
+            console.log(response.data);
 
             rl.question("\n🔄 Enter the Book ID you want to return: ", bookId => {
                 returnBook(bookId.trim());
@@ -209,7 +215,7 @@ function showIssuedBooks() {
 
 // Return a book
 function returnBook(bookId) {
-    axios.post(`${serverUrl}/return`, { id: bookId, userId })
+    axios.post(`${serverUrl}/book/return`, { id: bookId, userId })
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();

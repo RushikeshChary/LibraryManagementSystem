@@ -1,52 +1,86 @@
 import express from 'express';
 import db from "../db/connection.js";
-// const db = require("../db/connection.js");
 const router = express.Router();
 
-// Function to get current date in the format "YYYY-MM-DD"
-
-function get_date() {
-    let today = new Date();
-    let dd = String(today.getDate()).padStart(2, '0');
-    let mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
-    let yyyy = today.getFullYear();
-
-    return yyyy + '-' + mm + '-' + dd;
-}
 
 // Endpoint for searching books.
-router.get('/category/:cat_name', async (req, res)=>{
-    try{
-        const { cat_name } = req.params;
-        const query = "SELECT book_id, book_title FROM book as b,category as c WHERE b.category_id = c.category_id AND c.category_name =?";
-        const [rows] = await db.query(query,[cat_name]);
-        res.json(rows);
+// router.get('/category/:cat_name', async (req, res)=>{
+//     try{
+//         const { cat_name } = req.params;
+//         const query = "SELECT book_id, book_title FROM book as b,category as c WHERE b.category_id = c.category_id AND c.category_name =?";
+//         const [rows] = await db.query(query,[cat_name]);
+//         res.json(rows);
+//     }
+//     catch(err){
+//         console.error(err);
+//         res.status(500).json({ message: 'Error retrieving books' });
+//     }
+// })
+
+// router.get('/title/:title_name',async (req,res)=>{
+//     try{
+//         const { title_name } = req.params;
+//         const query = "SELECT book_id, book_title FROM book WHERE book_title =?"
+//         const [rows] = await db.query(query, ['%' + title_name + '%']);
+//         res.json(rows);
+//     }
+//     catch(err){
+//         console.error(err);
+//         res.status(500).json({ message: 'Error retrieving books' });
+//     }
+// })
+
+// router.get('/author/:author_name',async (req,res)=>{
+//     try{
+//         const { author_name } = req.params;
+//         const query = "SELECT b.book_id, b.book_title FROM book as b, book_author as ba, author as a WHERE b.book_id = ba.book_id AND a.author_id = ba.author_id AND a.author_name =?";
+//         const [rows] = await db.query(query, [author_name]);
+//         res.json(rows);
+//     }
+//     catch(err){
+//         console.error(err);
+//         res.status(500).json({ message: 'Error retrieving books' });
+//     }
+// })
+
+
+router.get('/search', async (req, res) => {
+    try {
+        const { field , value} = req.query;
+        // const { value } = req.params;
+        var query = ""
+        switch (field)
+        {
+            case 'title':
+                query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE book_title LIKE ?"
+                break;
+            case 'author':
+                query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE a.author_name LIKE ?"
+                break;
+            case 'category':
+                query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE c.category_name LIKE ?"
+                break;
+            default:
+                return res.status(400).json({ message: 'Invalid search field' });
+        }
+        const [rows] = await db.query(query, ['%' + value + '%']);
+        res.json(rows[0]);
     }
-    catch(err){
+    catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Error retrieving books' });
+        res.status(500).json({ message: 'Error searching for books' });
     }
 })
+// show all books user has currently issued.
 
-router.get('/title/:title_name',async (req,res)=>{
+router.get('/issued-books', async (req,res)=>{
     try{
-        const { title_name } = req.params;
-        const query = "SELECT book_id, book_title FROM book WHERE book_title =?"
-        const [rows] = await db.query(query, [title_name]);
-        res.json(rows);
-    }
-    catch(err){
-        console.error(err);
-        res.status(500).json({ message: 'Error retrieving books' });
-    }
-})
+        const { userId } = req.query;
+        const query = "SELECT b.book_id, b.book_title, bi.issue_date FROM book as b, book_issue as bi WHERE b.book_id = bi.book_id AND bi.user_id =? AND bi.return_status = 0";
 
-router.get('/author/:author_name',async (req,res)=>{
-    try{
-        const { author_name } = req.params;
-        const query = "SELECT b.book_id, b.book_title FROM book as b, book_author as ba, author as a WHERE b.book_id = ba.book_id AND a.author_id = ba.author_id AND a.author_name =?";
-        const [rows] = await db.query(query, [author_name]);
-        res.json(rows);
+        const q = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id JOIN book_issue as bi ON bi.book_id = b.book_id WHERE bi.user_id = ? AND bi.return_status = 0"
+        const [rows] = await db.query(q, [userId]);
+        res.json(rows[0]);
     }
     catch(err){
         console.error(err);

@@ -100,8 +100,10 @@ BEGIN
         SET fine_amount = due_days * 10;
 
         -- Insert record into fine_due table
-        INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount)
-        VALUES (NEW.user_id, NEW.issue_id, NEW.return_date, fine_amount);
+        IF fine_amount > 0 THEN
+            INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount)
+            VALUES (NEW.user_id, NEW.issue_id, NEW.return_date, fine_amount);
+        END IF;
     END IF;
 END;
 //
