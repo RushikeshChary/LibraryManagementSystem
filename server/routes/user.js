@@ -160,7 +160,7 @@ router.get('/fine', async (req, res) => {
     }
 });
 
-router.post('pay-fine', async (req, res) => {
+router.post('/pay-fine', async (req, res) => {
     try {
         const { userId, fineIds } = req.body;
         if (!userId && !fineIds) {
@@ -175,10 +175,10 @@ router.post('pay-fine', async (req, res) => {
         else
         {
             // Just delete those fines curresponding to this userId and given fineIds.
-            for(let fineId of fineIds)
-            {
-                await db.query('DELETE FROM fine_due WHERE fine_id =?', [fineId]);
-            }
+            // for(let fineId of fineIds)
+            // {
+            //     await db.query('DELETE FROM fine_due WHERE fine_id =?', [fineId]);
+            // }
             const query = "DELETE FROM fine_due WHERE fine_due_id IN (?)";
             await db.query(query,[fineIds]);
             return res.status(200).json({ message: 'Payment successful for fines with given ids' });

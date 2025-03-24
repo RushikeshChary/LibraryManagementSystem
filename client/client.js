@@ -277,13 +277,31 @@ function confirmPayFine(amount) {
     });
 }
 
-// Pay individual fine
+// Pay individual fines
 function payIndividualFine(fines) {
+    if (fines.length === 0) {
+        console.log("✅ No pending fines.");
+        showMenu();
+        return;
+    }
+
+    console.log("\n📌 Pending Fines:");
+    console.log("--------------------------------------");
+    console.log("Fine ID | Fine Amount | Book Title");
+    console.log("--------------------------------------");
+
+    fines.forEach(fine => {
+        console.log(`${fine.fine_due_id}     | ₹${fine.fine_amount}   | ${fine.book_title}`);
+    });
+
+    console.log("--------------------------------------");
+
     rl.question("\nEnter Fine ID(s) to pay (comma separated): ", fineIds => {
         const selectedFineIds = fineIds.split(',').map(id => id.trim());
         payFine(selectedFineIds);
     });
 }
+
 
 // Pay fine (total or selected)
 function payFine(selectedFineIds) {
