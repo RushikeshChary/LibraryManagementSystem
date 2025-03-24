@@ -7,6 +7,7 @@ import db from "./db/connection.js";
 
 const app = express();
 const Port = process.env.PORT || 8080;
+app.use(express.json());
 // Test database connection and start server
 db.getConnection()
     .then(connection => {
@@ -21,11 +22,12 @@ db.getConnection()
         process.exit(1);
     });
 // Middleware to parse JSON request bodies
-app.use(express.json());
+
 
 app.use('/user',user);
 
 app.use('/book', book);
+
 
 
 

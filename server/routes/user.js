@@ -86,20 +86,20 @@ router.post('/register', async (req, res) => {
 
 // Endpoint for getting user's fine for each book_issue made by this user.
 
-router.get('/fine', async (req, res) => {
-    try {
-        const { userId } = req.query;
-        if (!userId) {
-            return res.status(400).json({ message: 'Missing required fields' });
-        }
-        const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id"
-        const [rows] = await db.query(query, [userId]);
-        res.json(rows[0]);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Error retrieving fine' });
-    }
-});
+// router.get('/fine', async (req, res) => {
+//     try {
+//         const { userId } = req.query;
+//         if (!userId) {
+//             return res.status(400).json({ message: 'Missing required fields' });
+//         }
+//         const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id"
+//         const [rows] = await db.query(query, [userId]);
+//         res.json(rows[0]);
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ message: 'Error retrieving fine' });
+//     }
+// });
 
 // Endpoint to fetch user's fines for each issued book
 // router.get('/fine', async (req, res) => {
@@ -131,17 +131,47 @@ router.get('/fine', async (req, res) => {
 
 
 // Endpoint for clearing single book's fine.
-router.delete('/fine/:bookId', async (req, res) => {
+// router.delete('/fine/:bookId', async (req, res) => {
+//     try {
+//         const { bookId, userId } = req.params;
+//         if (!bookId) {
+//             return res.status(400).json({ message: 'Missing required fields' });
+//         }
+//         await db.query('DELETE FROM fine_due WHERE book_id =? AND user_id =?', [bookId, userId]);
+//         return res.status(200).json({ message: 'Fine for the book has been cleared successfully' });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ message: 'Error clearing fine' });
+//     }
+// }); 
+// export default router;
+
+router.get('/fine', async (req, res) => {
     try {
-        const { bookId, userId } = req.params;
-        if (!bookId) {
+        const { userId } = req.query;
+        if (!userId) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        await db.query('DELETE FROM fine_due WHERE book_id =? AND user_id =?', [bookId, userId]);
-        return res.status(200).json({ message: 'Fine for the book has been cleared successfully' });
+        const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount, fine_due.fine_id FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id"
+        const [rows] = await db.query(query, [userId]);
+        res.json(rows);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Error clearing fine' });
+        res.status(500).json({ message: 'Error retrieving fine' });
     }
-}); 
-export default router;
+});
+
+router.post('pay-fine', async (req, res) => {
+    try {
+        const { userId, fineId } = req.body;
+        if (!userId ||!fineId) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        const query = "UPDATE fine_due SET paid = 1 WHERE fine_id =? AND user_id =?";
+        await db.query(query, [fineId, userId]);
+        return res.status(200).json({ message: 'Payment successful' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error paying fine' });
+    }
+})

@@ -80,7 +80,7 @@ router.get('/issued-books', async (req,res)=>{
 
         const q = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id JOIN book_issue as bi ON bi.book_id = b.book_id WHERE bi.user_id = ? AND bi.return_status = 0"
         const [rows] = await db.query(q, [userId]);
-        res.json(rows[0]);
+        res.json(rows);
     }
     catch(err){
         console.error(err);
@@ -90,74 +90,90 @@ router.get('/issued-books', async (req,res)=>{
 
 // 2. book issue.
 
-router.post('/issue', async (req, res)=>{
-    try{
-        const { book_id, user_id } = req.body;
-        if (!book_id ||!user_id) {
+router.post('/issue', async (req, res) => {
+    try {
+        const { bookId, userId } = req.body;
+        if (!bookId || !userId) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        // Check whether this user has already issued this book or not.
-        const query_check = "SELECT book_id FROM book_issue WHERE book_id =? AND user_id =?";
-        const [result] = await db.query(query_check, [book_id, user_id]);
-        if(result.length > 0){
+
+        console.log(`📥 Received Issue Request: bookId=${bookId}, userId=${userId}`);
+
+        // ✅ Check whether this user has already issued this book
+        const queryCheck = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ? AND return_status != 1";
+        const [issuedResult] = await db.query(queryCheck, [bookId, userId]);
+
+        console.log("🔍 Issue Check Result:", issuedResult);
+
+        if (issuedResult.length > 0) {
             return res.status(400).json({ message: 'This user has already issued this book' });
         }
-        // Check whether this book is available or not.
-        // Decrease the number of copies available for this book.
-        // Add this request into book_request.
-        // If book is available, issue the book and return 200 status code.
-        // If book is not available, add this request into book_request and return 400 status code.
 
-        // Add this request into book_request.
-        const availablity_check = "SELECT book_id FROM book as b WHERE b.book_id = ? AND b.copies_available > 0";
-        const [res] = await db.query(availablity_check, [book_id]);
-        if(res.length > 0)
-        {
-            const query = "UPDATE book SET copies_available = copies_available - 1 WHERE book_id =?";
-            await db.query(query, [book_id]);
-            const issue_date = new Date().toISOString().slice(0,10);
-            const query_issue = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?, ?, ?)";
-            await db.query(query_issue, [book_id, user_id, issue_date]);
+        // ✅ Check book availability
+        const availabilityCheck = "SELECT copies_available FROM book WHERE book_id = ?";
+        const [availableResult] = await db.query(availabilityCheck, [bookId]);
+
+        console.log("📖 Availability Check Result:", availableResult);
+
+        if (availableResult.length === 0) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        const availableCopies = availableResult[0].copies_available;
+
+        if (availableCopies > 0) {
+            // ✅ Issue the book (Decrease available copies)
+            const issueDate = new Date().toISOString().slice(0, 10);
+            const updateQuery = "UPDATE book SET copies_available = copies_available - 1 WHERE book_id = ?";
+            const issueQuery = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?, ?, ?)";
+
+            await db.query(updateQuery, [bookId]);
+            await db.query(issueQuery, [bookId, userId, issueDate]);
+
+            console.log("✅ Book Issued Successfully!");
             return res.status(200).json({ message: 'Book issued successfully' });
-            
+        } else {
+            // ✅ Add request to book_request table
+            const requestQuery = "INSERT INTO book_request (book_id, user_id) VALUES (?, ?)";
+            await db.query(requestQuery, [bookId, userId]);
+
+            console.log("🚫 No copies available, added to request list.");
+            return res.status(400).json({ message: 'No copy available. Added to request list.' });
         }
-        else{
-            // Add this request into book_request.
-            const query = "INSERT INTO book_request(book_id,user_id) VALUES (?,?)";
-            await db.query(query, [book_id, user_id]);
-            return res.status(400).json({ message: 'No copy of this Book is available, will be issued whenever it becomes available' });
-        }
+    } catch (err) {
+        console.error("❌ Error Issuing Book:", err);
+        res.status(500).json({ message: 'Internal server error' });
     }
-    catch(err){
-        console.error(err);
-        res.status(500).json({ message: 'Error issuing book' });
-    }
-})
+});
+
 
 // 3. book return.
 router.post('/return', async (req, res) => {
     try {
-        const { book_id, user_id } = req.body;
-        if (!book_id || !user_id) {
-            return res.status(400).json({ message: 'Missing required fields' });
+        console.log("Received request body: ", ); // Debugging
+
+        const { bookId, userId } = req.body;
+
+        if (!bookId || !userId) {
+            return res.status(401).json({ message: 'Missing required fields' });
         }
 
         // Check whether this book is issued by this user or not.
         const issue_check = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ?";
-        const [issueRes] = await db.query(issue_check, [book_id, user_id]);
+        const [issueRes] = await db.query(issue_check, [bookId, userId]);
 
         if (issueRes.length === 0) {
-            return res.status(400).json({ message: 'This book is not issued by you' });
+            return res.status(402).json({ message: 'This book is not issued by you' });
         }
 
         // Update the book's copies_available.
         const increment_query = "UPDATE book SET copies_available = copies_available + 1 WHERE book_id = ?";
-        await db.query(increment_query, [book_id]);
+        await db.query(increment_query, [bookId]);
 
         // Update return_date and return_status in book_issue table
         const returnDate = new Date().toISOString().slice(0, 10); // Format as 'YYYY-MM-DD'
         const update_query = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ?";
-        await db.query(update_query, [returnDate, 1, book_id, user_id]);
+        await db.query(update_query, [returnDate, 1, bookId, userId]);
 
         // Get fine amount
         const fine_query = `
@@ -166,23 +182,23 @@ router.post('/return', async (req, res) => {
             JOIN book_issue ON fine_due.issue_id = book_issue.issue_id
             WHERE book_issue.book_id = ? AND book_issue.user_id = ?
         `;
-        const [fineRes] = await db.query(fine_query, [book_id, user_id]);
+        const [fineRes] = await db.query(fine_query, [bookId, userId]);
 
-        // const fine = fineRes.length > 0 ? fineRes[0].fine_amount : 0;
-        const fine = fineRes[0].fine_amount;
+        const fine = fineRes.length > 0 ? fineRes[0].fine_amount : 0;
+        // const fine = fineRes[0].fine_amount;
 
         //Now check in the book_request table whether anyone has requested this book. In case of multiple requests, pick the one with least request_date
         const request_query = "SELECT * FROM book_request WHERE book_id =? ORDER BY request_date ASC LIMIT 1";
-        const [requestRes] = await db.query(request_query, [book_id]);
+        const [requestRes] = await db.query(request_query, [bookId]);
         //Insert this data as an issue int the book_issue table.
         if (requestRes.length > 0) {
-            const { user_id } = requestRes[0];
+            const { userId } = requestRes[0];
             const issue_date = new Date().toISOString().slice(0,10);
             const issue_query = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?,?,?)";
-            await db.query(issue_query, [book_id, user_id, issue_date]);
+            await db.query(issue_query, [bookId, userId, issue_date]);
             // Delete the request from book_request table
             const delete_request_query = "DELETE FROM book_request WHERE book_id =? AND user_id =?";
-            await db.query(delete_request_query, [book_id, user_id]);
+            await db.query(delete_request_query, [bookId, userId]);
         }
         return res.status(200).json({ message: `Book returned successfully! Your fine for this book is ${fine}` });
 

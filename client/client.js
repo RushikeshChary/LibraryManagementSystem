@@ -176,7 +176,7 @@ function searchBooks(field, value) {
 
 // Borrow a book
 function borrowBook(bookId) {
-    axios.post(`${serverUrl}/book/issue`, { id: bookId, userId })
+    axios.post(`${serverUrl}/book/issue`, { bookId, userId })
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();
@@ -204,7 +204,7 @@ function showIssuedBooks() {
             console.log(response.data);
 
             rl.question("\n🔄 Enter the Book ID you want to return: ", bookId => {
-                returnBook(bookId.trim());
+                returnBook(bookId);
             });
         })
         .catch(error => {
@@ -215,13 +215,13 @@ function showIssuedBooks() {
 
 // Return a book
 function returnBook(bookId) {
-    axios.post(`${serverUrl}/book/return`, { id: bookId, userId })
+    axios.post(`${serverUrl}/book/return`, { bookId, userId })
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();
         })
         .catch(error => {
-            console.error(`⚠️  ${error.response?.data?.error || error.message}`);
+            console.error(`⚠️ Error message: ${error.response?.data?.error || error.message}`);
             showMenu();
         });
 }
