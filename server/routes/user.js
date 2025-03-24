@@ -144,7 +144,6 @@ router.post('/register', async (req, res) => {
 //         res.status(500).json({ message: 'Error clearing fine' });
 //     }
 // }); 
-// export default router;
 
 router.get('/fine', async (req, res) => {
     try {
@@ -175,3 +174,5 @@ router.post('pay-fine', async (req, res) => {
         res.status(500).json({ message: 'Error paying fine' });
     }
 })
+
+export default router;

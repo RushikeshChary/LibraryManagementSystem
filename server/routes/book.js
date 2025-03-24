@@ -170,6 +170,9 @@ router.post('/return', async (req, res) => {
         const increment_query = "UPDATE book SET copies_available = copies_available + 1 WHERE book_id = ?";
         await db.query(increment_query, [bookId]);
 
+        const get_id = "SELECT * FROM book_issue as b WHERE b.return_status = ? AND b.book_id = ? AND b.userr_id = ?";
+        const [issueIdRes] = await db.query(get_id, [0, bookId, userId]);
+        const issueId = issueIdRes[0].issue_id;
         // Update return_date and return_status in book_issue table
         const returnDate = new Date().toISOString().slice(0, 10); // Format as 'YYYY-MM-DD'
         const update_query = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ?";
@@ -180,9 +183,8 @@ router.post('/return', async (req, res) => {
             SELECT fine_amount 
             FROM fine_due 
             JOIN book_issue ON fine_due.issue_id = book_issue.issue_id
-            WHERE book_issue.book_id = ? AND book_issue.user_id = ?
-        `;
-        const [fineRes] = await db.query(fine_query, [bookId, userId]);
+            WHERE book_issue.issue_id = ?`;
+        const [fineRes] = await db.query(fine_query, [issueId]);
 
         const fine = fineRes.length > 0 ? fineRes[0].fine_amount : 0;
         // const fine = fineRes[0].fine_amount;
