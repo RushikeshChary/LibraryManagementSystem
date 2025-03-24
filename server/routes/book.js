@@ -55,7 +55,17 @@ router.get('/search', async (req, res) => {
                 query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE book_title LIKE ?"
                 break;
             case 'author':
-                query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE a.author_name LIKE ?"
+                // query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE a.author_name LIKE ?"
+                query = `
+                    SELECT b.book_id, b.book_title, b.copies_available, c.category_name, 
+                    GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors
+                    FROM book AS b 
+                    JOIN category AS c ON b.category_id = c.category_id 
+                    JOIN book_author AS ba ON ba.book_id = b.book_id 
+                    JOIN author AS a ON ba.author_id = a.author_id 
+                    WHERE a.author_name LIKE ?
+                    GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name
+                `;
                 break;
             case 'category':
                 query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE c.category_name LIKE ?"
@@ -64,7 +74,7 @@ router.get('/search', async (req, res) => {
                 return res.status(400).json({ message: 'Invalid search field' });
         }
         const [rows] = await db.query(query, ['%' + value + '%']);
-        res.json(rows[0]);
+        res.json(rows);
     }
     catch (err) {
         console.error(err);
@@ -78,7 +88,7 @@ router.get('/issued-books', async (req,res)=>{
         const { userId } = req.query;
         const query = "SELECT b.book_id, b.book_title, bi.issue_date FROM book as b, book_issue as bi WHERE b.book_id = bi.book_id AND bi.user_id =? AND bi.return_status = 0";
 
-        const q = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id JOIN book_issue as bi ON bi.book_id = b.book_id WHERE bi.user_id = ? AND bi.return_status = 0"
+        const q = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id JOIN book_issue as bi ON bi.book_id = b.book_id WHERE bi.user_id = ? AND bi.return_status = 0";
         const [rows] = await db.query(q, [userId]);
         res.json(rows);
     }
