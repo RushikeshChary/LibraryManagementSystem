@@ -151,7 +151,7 @@ router.get('/fine', async (req, res) => {
         if (!userId) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount, fine_due.fine_due_id FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id"
+        const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount, fine_due.fine_due_id FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id WHERE fine_due.user_id = ?";
         const [rows] = await db.query(query, [userId]);
         res.json(rows);
     } catch (err) {
