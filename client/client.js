@@ -147,7 +147,11 @@ function searchBookMenu() {
                 rl.question("📂 Enter category: ", category => searchBooks('category', category));
                 break;
             case '4':
-                showMenu();
+                if(!userId){
+                    showAuthMenu();
+                }else{
+                    showMenu();
+                }
                 break;
             default:
                 console.log("❌ Invalid choice. Try again.");
@@ -169,11 +173,20 @@ function searchBooks(field, value) {
                 // });
                 console.log(response.data);
             }
-            showMenu();
+            if(!userId){
+                searchBookMenu();
+            }else{
+                showMenu();
+            }
+            
         })
         .catch(error => {
             console.error("⚠️  Error searching books:", error.message);
-            showMenu();
+            if(!userId){
+                searchBookMenu();
+            }else{
+                showMenu();
+            }
         });
 }
 
