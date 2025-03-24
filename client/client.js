@@ -248,16 +248,26 @@ function checkFine() {
             });
 
             console.log(`\n💵 Total Fine Amount: ₹${totalFine}`);
-            rl.question("⚠️  Do you want to (1) Pay Total Fine or (2) Pay Individually? (Enter 1 or 2): ", choice => {
-                if (choice === '1') {
-                    confirmPayFine(totalFine);
-                } else if (choice === '2') {
-                    payIndividualFine(fines);
-                } else {
-                    console.log("❌ Invalid choice. Returning to menu.");
-                    showMenu();
+            rl.question(
+                "⚠️  Do you want to: \n" +
+                "(1) Pay Total Fine \n" +
+                "(2) Pay Individually \n" +
+                "(3) Go Back\n" +
+                "Enter 1, 2, or 3: ",
+                choice => {
+                    if (choice === '1') {
+                        confirmPayFine(totalFine);
+                    } else if (choice === '2') {
+                        payIndividualFine(fines);
+                    } else if (choice === '3') {
+                        console.log("🔙 Going back to the menu.");
+                        showMenu();
+                    } else {
+                        console.log("❌ Invalid choice. Returning to menu.");
+                        showMenu();
+                    }
                 }
-            });
+            );
         })
         .catch(error => {
             console.error("⚠️  Error checking fine:", error.message);
