@@ -56,17 +56,20 @@ function login() {
                 showMenu();
                 return;
             }
-            axios.post(`${serverUrl}/user/login`, { email, password })
-                .then(response => {
-                    userId = response.data.userId; 
-                    const username = response.data.username;
-                    console.log(`✅ Login Successful! Welcome, ${username}.`);
-                    showMenu();
-                })
-                .catch(error => {
-                    console.error("❌ Login Failed:", error.response?.data?.error || error.message);
-                    showAuthMenu();
-                });
+        axios.post(`${serverUrl}/user/login`, { email, password })
+            .then(response => {
+                if (!response.data || !response.data.userId || !response.data.username) {
+                    throw new Error("Invalid login response");
+                }
+                userId = response.data.userId;
+                console.log(`✅ Login Successful! Welcome, ${response.data.username}.`);
+                showMenu();
+            })
+            .catch(error => {
+                console.error("❌ Login Failed:", error.response?.data?.error || error.message);
+                showAuthMenu();
+            });
+
         });
     });
 }
