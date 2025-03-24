@@ -74,22 +74,57 @@ function login() {
     });
 }
 
-// Register a new user
+// Register a new user with OTP verification
 function register() {
-    rl.question("👤 Choose a email: ", email => {
-        rl.question("🔑 Choose a Password: ", password => {
-            axios.post(`${serverUrl}/user/register`, { email, password })
-                .then(response => {
-                    console.log(`✅ Registration Successful! You can now log in.`);
-                    showAuthMenu();
-                })
-                .catch(error => {
-                    console.error("❌ Registration Failed:", error.response?.data?.error || error.message);
-                    showAuthMenu();
+    console.log("\n📝 Register a New Account");
+
+    rl.question("📧 Enter your Email ID: ", email => {
+        // Send OTP request
+        axios.post(`${serverUrl}/user/send-otp`, { email })
+            .then(() => {
+                rl.question("📩 Enter the OTP you received: ", otp => {
+                    // Verify OTP
+                    axios.post(`${serverUrl}/user/verify-otp`, { email, otp })
+                        .then(() => {
+                            console.log("✅ OTP Verified! Proceeding with registration...");
+
+                            rl.question("👤 Enter First Name: ", first_name => {
+                                rl.question("👥 Enter Last Name: ", last_name => {
+                                    rl.question("📱 Enter Mobile Number: ", mobile_no => {
+                                        rl.question("🔑 Choose a Password: ", password => {
+
+                                            const userData = { first_name, last_name, mobile_no, email, password };
+
+                                            axios.post(`${serverUrl}/user/register`, userData)
+                                                .then(response => {
+                                                    console.log(`✅ Registration Successful! You can now log in.`);
+                                                    showAuthMenu();
+                                                })
+                                                .catch(error => {
+                                                    console.error("❌ Registration Failed:", error.response?.data?.message || error.message);
+                                                    showAuthMenu();
+                                                });
+
+                                        });
+                                    });
+                                });
+                            });
+
+                        })
+                        .catch(error => {
+                            console.error("❌ OTP Verification Failed:", error.response?.data?.message || error.message);
+                            showAuthMenu();
+                        });
                 });
-        });
+            })
+            .catch(error => {
+                console.error("❌ Failed to Send OTP:", error.response?.data?.message || error.message);
+                showAuthMenu();
+            });
     });
 }
+
+
 
 // Menu
 function showMenu() {

@@ -1,88 +1,110 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import db from "../db/connection.js";
+import { sendOTP, verifyOTP } from '../utils/otpService.js';
+
 
 const router = express.Router();
 
-// Endpoint for login
-router.post('/login', async (req, res) => {
+// Send OTP to user email
+router.post('/send-otp', async (req, res) => {
     try {
-        const {email, password } = req.body;
-        var rows = [];
-        if (!email ||!password) {
-            return res.status(400).json({ message: 'Missing required fields' });
-        }
-        try{
-            [rows] = await db.query('SELECT * FROM user WHERE email =?', [email]);
-            if(rows.length == 0){
-                return res.status(200).json({ message: 'Email does not exist! Please register...' });
-            }
-        }
-        catch(err){
-            console.error(err);
-            return res.status(500).json({ message: 'Error checking for existing email' });
-        }
-        //compare password with bcrypt password.
-        // const match = await bcrypt.compare(password, rows[0].password);
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: 'Email is required' });
 
-        // if (!match) {
-        //     return res.status(400).json({ message: 'Incorrect password' });
-        // }
-        if(password != rows[0].password)
-            {
-            return res.status(400).json({ message: 'Incorrect password' });
-        }
-        else
-        {
-            // return res.status(200).json({ message:`Welcome ${rows[0].name}! You have successfully logged in. Your unique ID is ${rows[0].user_id}.` });
-            // return res.status(200).json(rows[0]);
-            return res.status(200).json({userId: rows[0].user_id,username: rows[0].name})
-        }
+        // Generate to send OTP
+        const otpSent = await sendOTP(email);
+        if (!otpSent) return res.status(500).json({ message: 'Failed to send OTP' });
+
+        res.status(200).json({ message: 'OTP sent successfully' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Error login' });
+        res.status(500).json({ message: 'Error sending OTP' });
     }
 });
 
-// Endpoint for registration
+// Verify OTP before proceeding with registration
+router.post('/verify-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        if (!email || !otp) return res.status(400).json({ message: 'Email and OTP are required' });
+
+        const isValid = await verifyOTP(email, otp);
+        if (!isValid) return res.status(400).json({ message: 'Invalid OTP' });
+
+        res.status(200).json({ message: 'OTP verified successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error verifying OTP' });
+    }
+});
+
+// Register user after OTP verification
 router.post('/register', async (req, res) => {
-    try{
-        const { name, email, password, mobile_no } = req.body;
-        if (!name ||!email ||!password || !mobile_no) {
+    try {
+        const { first_name, last_name, email, password, mobile_no } = req.body;
+        if (!first_name || !last_name || !email || !password || !mobile_no) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        //check if these mobile_no or email already exists.
-        try{
-            const [rows] = await db.query('SELECT email FROM user WHERE email =?', [email]);
-            if(rows.length > 0){
-                return res.status(400).json({ message: 'Email already exists' });
-            }
-        }
-        catch(err){
+
+        // Combine first and last name because they have only one field for name in database(SAD).
+        const name = `${first_name} ${last_name}`;
+
+        // Check if email or mobile number exists
+        try {
+            const [existingUser] = await db.query('SELECT email FROM user WHERE email =?', [email]);
+            if (existingUser.length > 0) return res.status(400).json({ message: 'Email already exists' });
+
+            const [existingMobile] = await db.query('SELECT mobile_no FROM user WHERE mobile_no =?', [mobile_no]);
+            if (existingMobile.length > 0) return res.status(400).json({ message: 'Mobile number already exists' });
+        } catch (err) {
             console.error(err);
-            return res.status(500).json({ message: 'Error checking for existing email' });
+            return res.status(500).json({ message: 'Error checking for existing email or mobile number' });
         }
-        try{
-            const [rows] = await db.query('SELECT mobile_no FROM user WHERE mobile_no =?', [mobile_no]);
-            if(rows.length > 0){
-                return res.status(400).json({ message: 'Mobile number already exists' });
-            }
-        }
-        catch(err){
-            console.error(err);
-            return res.status(500).json({ message: 'Error checking for existing mobile number' });
-        }
-        
-        //hash the password before storing it in the database.
+
+        // Hash the password before storing it
         const hashedPassword = await bcrypt.hash(password, 10);
-        await db.query('INSERT INTO user (name, email, password,mobile_no) VALUES (?,?,?,?)', [name, email, hashedPassword,mobile_no]);
-        return res.status(200).json({ message:`User ${name} has been registered successfully. Please log in to continue.` });
-    }
-    catch (err) {
+        await db.query('INSERT INTO user (name, email, password, mobile_no) VALUES (?, ?, ?, ?)', 
+            [name, email, hashedPassword, mobile_no]);
+
+        res.status(200).json({ message: `User ${name} has been registered successfully. Please log in to continue.` });
+    } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error registering... Possibly due to duplicate mobile_no/email' });
     }
-})
+});
+
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // Fetch user from the database
+        let [rows] = await db.query('SELECT * FROM user WHERE email = ?', [email]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Email does not exist! Please register...' });
+        }
+
+        const user = rows[0];
+
+        // Compare hashed password using bcrypt
+        const match = await bcrypt.compare(password, user.password);
+
+        if (!match) {
+            return res.status(400).json({ message: 'Incorrect password' });
+        }
+
+        // Successful login response
+        return res.status(200).json({ userId: user.user_id, username: user.name });
+
+    } catch (err) {
+        console.error("Error during login:", err);
+        res.status(500).json({ message: 'Error logging in' });
+    }
+});
 
 // Endpoint for getting user's fine for each book_issue made by this user.
 
