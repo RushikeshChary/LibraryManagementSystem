@@ -230,7 +230,7 @@ function returnBook(bookId) {
 function checkFine() {
     axios.get(`${serverUrl}/user/fine`, { params: { userId } })
         .then(response => {
-            const fines = response.data.fines; 
+            const fines = response.data; 
             if (!fines || fines.length === 0) {
                 console.log("✅ No outstanding fines.");
                 showMenu();
@@ -240,8 +240,8 @@ function checkFine() {
             console.log("\n💰 Outstanding Fines:");
             let totalFine = 0;
             fines.forEach(fine => {
-                console.log(`🔹 Fine ID: ${fine.id} | Amount: ₹${fine.amount} | Reason: ${fine.reason}`);
-                totalFine += fine.amount;
+                console.log(`🔹 Fine ID: ${fine.fine_due_id} | Amount: ₹${fine.fine_amount} | Reason: ${fine.book_title}`);
+                totalFine += fine.fine_amount;
             });
 
             console.log(`\n💵 Total Fine Amount: ₹${totalFine}`);
@@ -286,7 +286,7 @@ function payIndividualFine(fines) {
 function payFine(selectedFineIds) {
     const payload = selectedFineIds ? { userId, fineIds: selectedFineIds } : { userId };
 
-    axios.post(`${serverUrl}/pay-fine`, payload)
+    axios.post(`${serverUrl}/user/pay-fine`, payload)
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();

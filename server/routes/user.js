@@ -151,7 +151,7 @@ router.get('/fine', async (req, res) => {
         if (!userId) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount, fine_due.fine_id FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id"
+        const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount, fine_due.fine_due_id FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id"
         const [rows] = await db.query(query, [userId]);
         res.json(rows);
     } catch (err) {
@@ -162,13 +162,27 @@ router.get('/fine', async (req, res) => {
 
 router.post('pay-fine', async (req, res) => {
     try {
-        const { userId, fineId } = req.body;
-        if (!userId ||!fineId) {
+        const { userId, fineIds } = req.body;
+        if (!userId && !fineIds) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        const query = "UPDATE fine_due SET paid = 1 WHERE fine_id =? AND user_id =?";
-        await db.query(query, [fineId, userId]);
-        return res.status(200).json({ message: 'Payment successful' });
+        // If there is only userId is present, clear all his fines. else if fineIds are also present, clear fines with those id's.
+        if (!fineIds) {
+            // Just delete all those fines curresponding to this userId.
+            await db.query('DELETE FROM fine_due WHERE user_id =?', [userId]);
+            return res.status(200).json({ message: 'Payment successful for all fines' });
+        }
+        else
+        {
+            // Just delete those fines curresponding to this userId and given fineIds.
+            for(let fineId of fineIds)
+            {
+                await db.query('DELETE FROM fine_due WHERE fine_id =?', [fineId]);
+            }
+            const query = "DELETE FROM fine_due WHERE fine_due_id IN (?)";
+            await db.query(query,[fineIds]);
+            return res.status(200).json({ message: 'Payment successful for fines with given ids' });
+        }
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error paying fine' });

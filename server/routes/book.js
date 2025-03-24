@@ -170,7 +170,7 @@ router.post('/return', async (req, res) => {
         const increment_query = "UPDATE book SET copies_available = copies_available + 1 WHERE book_id = ?";
         await db.query(increment_query, [bookId]);
 
-        const get_id = "SELECT * FROM book_issue as b WHERE b.return_status = ? AND b.book_id = ? AND b.userr_id = ?";
+        const get_id = "SELECT * FROM book_issue as b WHERE b.return_status = ? AND b.book_id = ? AND b.user_id = ?";
         const [issueIdRes] = await db.query(get_id, [0, bookId, userId]);
         const issueId = issueIdRes[0].issue_id;
         // Update return_date and return_status in book_issue table
