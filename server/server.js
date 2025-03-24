@@ -40,7 +40,6 @@ app.use('/book', book);
 
 
 
-
 //Just to test whether database is working properly.
 app.get('/users', async (req, res) => {
     try {

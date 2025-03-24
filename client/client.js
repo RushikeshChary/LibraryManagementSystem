@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-const serverUrl = 'http://localhost:3000'; // Adjust if needed
+const serverUrl = 'http://localhost:8080'; // Adjust if needed
 let userId = null; // Store logged-in user's ID
 
 // Hardcoded test credentials
@@ -226,23 +226,32 @@ function returnBook(bookId) {
         });
 }
 
-// Check fine
+// // Check fine
 function checkFine() {
-    axios.get(`${serverUrl}/fine`, { params: { userId } })
+    axios.get(`${serverUrl}/user/fine`, { params: { userId } })
         .then(response => {
-            const fineAmount = response.data.fine;
-            if (fineAmount === 0) {
-                console.log("✅ No outstanding fine.");
+            const fines = response.data.fines; 
+            if (!fines || fines.length === 0) {
+                console.log("✅ No outstanding fines.");
                 showMenu();
                 return;
             }
 
-            console.log(`💰 You have a pending fine of ₹${fineAmount}.`);
-            rl.question("⚠️  Do you want to pay the fine? (yes/no): ", answer => {
-                if (answer.toLowerCase() === 'yes') {
-                    payFine();
+            console.log("\n💰 Outstanding Fines:");
+            let totalFine = 0;
+            fines.forEach(fine => {
+                console.log(`🔹 Fine ID: ${fine.id} | Amount: ₹${fine.amount} | Reason: ${fine.reason}`);
+                totalFine += fine.amount;
+            });
+
+            console.log(`\n💵 Total Fine Amount: ₹${totalFine}`);
+            rl.question("⚠️  Do you want to (1) Pay Total Fine or (2) Pay Individually? (Enter 1 or 2): ", choice => {
+                if (choice === '1') {
+                    confirmPayFine(totalFine);
+                } else if (choice === '2') {
+                    payIndividualFine(fines);
                 } else {
-                    console.log("❌ Fine not paid.");
+                    console.log("❌ Invalid choice. Returning to menu.");
                     showMenu();
                 }
             });
@@ -253,9 +262,31 @@ function checkFine() {
         });
 }
 
-// Pay fine
-function payFine() {
-    axios.post(`${serverUrl}/pay-fine`, { userId })
+// Confirm before paying total fine or else you will be homeless
+function confirmPayFine(amount) {
+    rl.question(`⚠️  Confirm payment of ₹${amount}? (yes/no): `, answer => {
+        if (answer.toLowerCase() === 'yes') {
+            payFine(null); // Passing null to make the value 0 ante cleared
+        } else {
+            console.log("❌ Fine not paid.");
+            showMenu();
+        }
+    });
+}
+
+// Pay individual fine
+function payIndividualFine(fines) {
+    rl.question("\nEnter Fine ID(s) to pay (comma separated): ", fineIds => {
+        const selectedFineIds = fineIds.split(',').map(id => id.trim());
+        payFine(selectedFineIds);
+    });
+}
+
+// Pay fine (total or selected)
+function payFine(selectedFineIds) {
+    const payload = selectedFineIds ? { userId, fineIds: selectedFineIds } : { userId };
+
+    axios.post(`${serverUrl}/pay-fine`, payload)
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();
@@ -265,6 +296,7 @@ function payFine() {
             showMenu();
         });
 }
+
 
 // Phirse shuru
 showAuthMenu();
