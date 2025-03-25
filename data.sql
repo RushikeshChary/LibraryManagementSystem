@@ -74,7 +74,7 @@ CREATE TABLE book_issue(
 CREATE TABLE fine_due(
     fine_due_id INTEGER PRIMARY KEY AUTO_INCREMENT,
     user_id INTEGER,
-    issue_id INTEGER,
+    issue_id INTEGER UNIQUE,
     fine_date DATE,
     fine_amount INTEGER,
     FOREIGN KEY (user_id) REFERENCES user(user_id),
@@ -153,7 +153,7 @@ INSERT INTO user (name, email, password, mobile_no) VALUES
 
 INSERT INTO book_issue (user_id, book_id, issue_date, return_date) VALUES (1, 1, '2025-03-01', '2025-03-10'), (2, 2, '2025-03-05', '2025-03-15'), (3, 4, '2025-03-10', '2025-03-20'), (4, 5, '2025-03-12', '2025-03-22');
 
-INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount) VALUES (2, 2, '2025-03-16', 5), (4, 4, '2025-03-23', 10);
+-- INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount) VALUES (2, 2, '2025-03-16', 5), (4, 4, '2025-03-23', 10);
 
 INSERT INTO book_request (user_id, book_id, request_date) VALUES (2,4,'2025-03-16'),(4,4,'2025-03-15'),(8,2,'2025-03-20'),(1,2,'2025-03-17');
 
