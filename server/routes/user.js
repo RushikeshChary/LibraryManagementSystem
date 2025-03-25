@@ -66,6 +66,7 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         await db.query('INSERT INTO user (name, email, password, mobile_no) VALUES (?, ?, ?, ?)', 
             [name, email, hashedPassword, mobile_no]);
+            // [name, email, password, mobile_no]);
 
         res.status(200).json({ message: `User ${name} has been registered successfully. Please log in to continue.` });
     } catch (err) {
@@ -96,6 +97,10 @@ router.post('/login', async (req, res) => {
         if (!match) {
             return res.status(400).json({ message: 'Incorrect password' });
         }
+
+        // if (password !== user.password) {
+        //     return res.status(400).json({ message: 'Incorrect password' });
+        // }
 
         // Successful login response
         return res.status(200).json({ userId: user.user_id, username: user.name });
@@ -173,7 +178,11 @@ router.get('/fine', async (req, res) => {
         if (!userId) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        const query = "SELECT book.book_title, book.book_id, fine_due.fine_amount, fine_due.fine_due_id FROM book_issue JOIN fine_due ON book_issue.issue_id = fine_due.issue_id JOIN book ON book_issue.book_id = book.book_id WHERE fine_due.user_id = ?";
+        const query = `
+                    SELECT book.book_title, book.book_id, fine_due.fine_amount, fine_due.fine_due_id 
+                    FROM book_issue 
+                    JOIN fine_due ON book_issue.issue_id = fine_due.fine_due_id 
+                    JOIN book ON book_issue.book_id = book.book_id WHERE fine_due.user_id = ?`
         const [rows] = await db.query(query, [userId]);
         res.json(rows);
     } catch (err) {

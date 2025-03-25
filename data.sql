@@ -72,14 +72,22 @@ CREATE TABLE book_issue(
 );
 
 CREATE TABLE fine_due(
-    fine_due_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    fine_due_id INTEGER PRIMARY KEY,
     user_id INTEGER,
-    issue_id INTEGER UNIQUE,
     fine_date DATE,
     fine_amount INTEGER,
-    FOREIGN KEY (user_id) REFERENCES user(user_id),
-    FOREIGN KEY (issue_id) REFERENCES book_issue(issue_id)
+    FOREIGN KEY (fine_due_id) REFERENCES book_issue(issue_id),
+    FOREIGN KEY (user_id) REFERENCES user(user_id)
 );
+-- CREATE TABLE fine_due(
+--     fine_due_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+--     user_id INTEGER,
+--     issue_id INTEGER UNIQUE,
+--     fine_date DATE,
+--     fine_amount INTEGER,
+--     FOREIGN KEY (user_id) REFERENCES user(user_id),
+--     FOREIGN KEY (issue_id) REFERENCES book_issue(issue_id)
+-- );
 
 
 -- Create a triggers
@@ -101,8 +109,8 @@ BEGIN
 
         -- Insert record into fine_due table
         IF fine_amount > 0 THEN
-            INSERT INTO fine_due (user_id, issue_id, fine_date, fine_amount)
-            VALUES (NEW.user_id, NEW.issue_id, NEW.return_date, fine_amount);
+            INSERT INTO fine_due (fine_due_id, user_id, fine_date, fine_amount)
+            VALUES (NEW.user_id, NEW.return_date, fine_amount);
         END IF;
     END IF;
 END;

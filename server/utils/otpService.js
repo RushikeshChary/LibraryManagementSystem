@@ -5,8 +5,8 @@ import nodemailer from 'nodemailer';
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'Kamaopaisa216@gmail.com',   
-      pass: 'zeia gkyt iyuq tpkd',      
+      user: process.env.EMAIL,   
+      pass: process.env.EMAIL_PASSWORD,      
     },
   });
 
@@ -16,7 +16,7 @@ async function sendOTP(email) {
     otpStore.set(email, otp);
 
     const mailOptions = {
-        from: 'kamaopaisa216@gmail.com',
+        from: process.env.EMAIL,
         to: email,
         subject: 'Your OTP Code',
         text: `Your OTP for registration is: ${otp}`,

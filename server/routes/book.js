@@ -52,7 +52,13 @@ router.get('/search', async (req, res) => {
         switch (field)
         {
             case 'title':
-                query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE book_title LIKE ?"
+                query = `
+                    SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name 
+                    FROM book as b 
+                    JOIN category as c ON b.category_id = c.category_id 
+                    JOIN book_author as ba ON ba.book_id = b.book_id 
+                    JOIN author as a ON ba.author_id = a.author_id 
+                    WHERE book_title LIKE ?`
                 break;
             case 'author':
                 // query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE a.author_name LIKE ?"
@@ -160,8 +166,6 @@ router.post('/issue', async (req, res) => {
 // 3. book return.
 router.post('/return', async (req, res) => {
     try {
-        console.log("Received request body: ", ); // Debugging
-
         const { bookId, userId } = req.body;
 
         if (!bookId || !userId) {
@@ -169,13 +173,13 @@ router.post('/return', async (req, res) => {
         }
 
         // Check whether this book is issued by this user or not.
-        const issue_check = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ?";
+        const issue_check = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ? and return_status = 0";
         const [issueRes] = await db.query(issue_check, [bookId, userId]);
 
         if (issueRes.length === 0) {
-            return res.status(402).json({ message: 'This book is not issued by you' });
+            return res.status(200).json({ message: 'This book is not issued to you' });
         }
-
+        
         // Update the book's copies_available.
         const increment_query = "UPDATE book SET copies_available = copies_available + 1 WHERE book_id = ?";
         await db.query(increment_query, [bookId]);
@@ -185,14 +189,25 @@ router.post('/return', async (req, res) => {
         const issueId = issueIdRes[0].issue_id;
         // Update return_date and return_status in book_issue table
         const returnDate = new Date().toISOString().slice(0, 10); // Format as 'YYYY-MM-DD'
-        const update_query = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ?";
+        const update_query = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ? and return_status != 1";
         await db.query(update_query, [returnDate, 1, bookId, userId]);
+
+        // Ensure a fine record exists
+        const check_fine_query = "SELECT * FROM fine_due WHERE fine_due_id = ?";
+        const [fineCheck] = await db.query(check_fine_query, [issueId]);
+
+        if (fineCheck.length === 0) {
+            // Assuming fine amount is calculated elsewhere or set to 0 if not applicable
+            const fine = 0; 
+            const insert_fine_query = "INSERT INTO fine_due (fine_due_id, user_id, fine_date, fine_amount) VALUES (?, ?, ?, ?)";
+            await db.query(insert_fine_query, [issueId, userId, returnDate, fine]);
+        }
 
         // Get fine amount
         const fine_query = `
             SELECT fine_amount 
             FROM fine_due 
-            JOIN book_issue ON fine_due.issue_id = book_issue.issue_id
+            JOIN book_issue ON fine_due.fine_due_id = book_issue.issue_id
             WHERE book_issue.issue_id = ?`;
         const [fineRes] = await db.query(fine_query, [issueId]);
 
