@@ -239,7 +239,7 @@ function borrowBook(input) {
             showMenu();
         })
         .catch(error => {
-            console.error("⚠️  There is no book with the entered book id.");
+            console.error(`⚠️ ${error.response.data.message}`);
             showMenu();
         });
 }
