@@ -143,7 +143,7 @@ function handleUserInput(choice) {
             searchBookMenu();
             break;
         case '2':
-            rl.question("📖 Enter Book ID to borrow: ", bookId => borrowBook(bookId.trim()));
+            rl.question("📖 Enter Book ID to borrow (you can find Book ID by searching for the book): ", bookId => borrowBook(bookId.trim()));
             break;
         case '3':
             showIssuedBooks();
@@ -226,14 +226,20 @@ function searchBooks(field, value) {
 }
 
 // Borrow a book
-function borrowBook(bookId) {
+function borrowBook(input) {
+    const bookId = parseInt(input, 10); 
+    if (isNaN(bookId)) {  
+        console.log("⚠️ Enter a valid Book ID (must be a number).");
+        showMenu();
+        return;
+    }
     axios.post(`${serverUrl}/book/issue`, { bookId, userId })
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();
         })
         .catch(error => {
-            console.error(`⚠️  ${error.response?.data?.error || error.message}`);
+            console.error("⚠️  There is no book with the entered book id.");
             showMenu();
         });
 }
@@ -265,10 +271,17 @@ function showIssuedBooks() {
 }
 
 // Return a book
-function returnBook(bookId) {
+function returnBook(input) {
+    const bookId = parseInt(input, 10); 
+    if (isNaN(bookId)) {  
+        console.log("⚠️ Enter a valid Book ID (must be a number).");
+        showMenu();
+        return;
+    }
+
     axios.post(`${serverUrl}/book/return`, { bookId, userId })
         .then(response => {
-            console.log(`✔️ ${response.data.message}`);
+            console.log(`⚠️ ${response.data.message}`);
             showMenu();
         })
         .catch(error => {

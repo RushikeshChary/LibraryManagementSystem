@@ -92,9 +92,21 @@ router.get('/search', async (req, res) => {
 router.get('/issued-books', async (req,res)=>{
     try{
         const { userId } = req.query;
-        const query = "SELECT b.book_id, b.book_title, bi.issue_date FROM book as b, book_issue as bi WHERE b.book_id = bi.book_id AND bi.user_id =? AND bi.return_status = 0";
+        const query = `
+                    SELECT b.book_id, b.book_title, bi.issue_date 
+                    FROM book as b, book_issue as bi 
+                    WHERE b.book_id = bi.book_id AND bi.user_id =? AND bi.return_status = 0`;
 
-        const q = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id JOIN book_issue as bi ON bi.book_id = b.book_id WHERE bi.user_id = ? AND bi.return_status = 0";
+        const q = `
+                SELECT b.book_id, b.book_title, b.copies_available, c.category_name, 
+                        GROUP_CONCAT(DISTINCT a.author_name ORDER BY a.author_name SEPARATOR ', ') AS author_names
+                FROM book as b 
+                JOIN category as c ON b.category_id = c.category_id 
+                JOIN book_author as ba ON ba.book_id = b.book_id 
+                JOIN author as a ON ba.author_id = a.author_id 
+                JOIN book_issue as bi ON bi.book_id = b.book_id 
+                WHERE bi.user_id = ? AND bi.return_status = 0
+                GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name`;
         const [rows] = await db.query(q, [userId]);
         res.json(rows);
     }

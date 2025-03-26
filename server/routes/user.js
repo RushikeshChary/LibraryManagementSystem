@@ -63,10 +63,10 @@ router.post('/register', async (req, res) => {
         }
 
         // Hash the password before storing it
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // const hashedPassword = await bcrypt.hash(password, 10);
         await db.query('INSERT INTO user (name, email, password, mobile_no) VALUES (?, ?, ?, ?)', 
-            [name, email, hashedPassword, mobile_no]);
-            // [name, email, password, mobile_no]);
+            // [name, email, hashedPassword, mobile_no]);
+            [name, email, password, mobile_no]);
 
         res.status(200).json({ message: `User ${name} has been registered successfully. Please log in to continue.` });
     } catch (err) {
@@ -92,15 +92,15 @@ router.post('/login', async (req, res) => {
         const user = rows[0];
 
         // Compare hashed password using bcrypt
-        const match = await bcrypt.compare(password, user.password);
+        // const match = await bcrypt.compare(password, user.password);
 
-        if (!match) {
-            return res.status(400).json({ message: 'Incorrect password' });
-        }
-
-        // if (password !== user.password) {
+        // if (!match) {
         //     return res.status(400).json({ message: 'Incorrect password' });
         // }
+
+        if (password !== user.password) {
+            return res.status(400).json({ message: 'Incorrect password' });
+        }
 
         // Successful login response
         return res.status(200).json({ userId: user.user_id, username: user.name });
