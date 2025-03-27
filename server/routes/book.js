@@ -127,6 +127,13 @@ router.post('/issue', async (req, res) => {
 
         console.log(`📥 Received Issue Request: bookId=${bookId}, userId=${userId}`);
 
+        const bookExistsQuery = "SELECT book_id FROM book WHERE book_id = ?";
+        const [bookExists] = await db.query(bookExistsQuery, [bookId]);
+
+        if (bookExists.length === 0) {
+            return res.status(404).json({ message: 'There is no book with the entered book ID' });
+        }
+
         // ✅ Check whether this user has already issued this book
         const queryCheck = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ? AND return_status != 1";
         const [issuedResult] = await db.query(queryCheck, [bookId, userId]);
@@ -162,11 +169,12 @@ router.post('/issue', async (req, res) => {
             return res.status(200).json({ message: 'Book issued successfully' });
         } else {
             // ✅ Add request to book_request table
-            const requestQuery = "INSERT INTO book_request (book_id, user_id) VALUES (?, ?)";
-            await db.query(requestQuery, [bookId, userId]);
+            const requestDate = new Date().toISOString().slice(0, 19).replace('T', ' '); 
+            const requestQuery = "INSERT INTO book_request (book_id, user_id, request_date) VALUES (?, ?, ?)";
+            await db.query(requestQuery, [bookId, userId, requestDate]);
 
             console.log("🚫 No copies available, added to request list.");
-            return res.status(400).json({ message: 'No copy available. Added to request list.' });
+            return res.status(400).json({ message: 'No copies available. Added to request list.' });
         }
     } catch (err) {
         console.error("❌ Error Issuing Book:", err);

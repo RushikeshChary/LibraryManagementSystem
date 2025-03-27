@@ -26,10 +26,10 @@ CREATE TABLE book(
     book_title VARCHAR(255) NOT NULL,
     category_id INTEGER,
     publisher_id INTEGER,
-    publication_year INTEGER NOT NULL,
+    publication_year INTEGER,
     location_id INTEGER,
-    copies_total INTEGER,
-    copies_available INTEGER,
+    copies_total INTEGER CHECK (copies_total >= 0),
+    copies_available INTEGER CHECK (copies_available >= 0 AND copies_available <= copies_total),
     FOREIGN KEY (category_id) REFERENCES category(category_id),
     FOREIGN KEY (publisher_id) REFERENCES publisher(publisher_id),
     FOREIGN KEY (location_id) REFERENCES location(location_id)
@@ -79,15 +79,6 @@ CREATE TABLE fine_due(
     FOREIGN KEY (fine_due_id) REFERENCES book_issue(issue_id),
     FOREIGN KEY (user_id) REFERENCES user(user_id)
 );
--- CREATE TABLE fine_due(
---     fine_due_id INTEGER PRIMARY KEY AUTO_INCREMENT,
---     user_id INTEGER,
---     issue_id INTEGER UNIQUE,
---     fine_date DATE,
---     fine_amount INTEGER,
---     FOREIGN KEY (user_id) REFERENCES user(user_id),
---     FOREIGN KEY (issue_id) REFERENCES book_issue(issue_id)
--- );
 
 
 -- Create a triggers
