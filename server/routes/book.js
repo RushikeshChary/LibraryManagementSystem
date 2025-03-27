@@ -2,48 +2,6 @@ import express from 'express';
 import db from "../db/connection.js";
 const router = express.Router();
 
-
-// Endpoint for searching books.
-// router.get('/category/:cat_name', async (req, res)=>{
-//     try{
-//         const { cat_name } = req.params;
-//         const query = "SELECT book_id, book_title FROM book as b,category as c WHERE b.category_id = c.category_id AND c.category_name =?";
-//         const [rows] = await db.query(query,[cat_name]);
-//         res.json(rows);
-//     }
-//     catch(err){
-//         console.error(err);
-//         res.status(500).json({ message: 'Error retrieving books' });
-//     }
-// })
-
-// router.get('/title/:title_name',async (req,res)=>{
-//     try{
-//         const { title_name } = req.params;
-//         const query = "SELECT book_id, book_title FROM book WHERE book_title =?"
-//         const [rows] = await db.query(query, ['%' + title_name + '%']);
-//         res.json(rows);
-//     }
-//     catch(err){
-//         console.error(err);
-//         res.status(500).json({ message: 'Error retrieving books' });
-//     }
-// })
-
-// router.get('/author/:author_name',async (req,res)=>{
-//     try{
-//         const { author_name } = req.params;
-//         const query = "SELECT b.book_id, b.book_title FROM book as b, book_author as ba, author as a WHERE b.book_id = ba.book_id AND a.author_id = ba.author_id AND a.author_name =?";
-//         const [rows] = await db.query(query, [author_name]);
-//         res.json(rows);
-//     }
-//     catch(err){
-//         console.error(err);
-//         res.status(500).json({ message: 'Error retrieving books' });
-//     }
-// })
-
-
 router.get('/search', async (req, res) => {
     try {
         const { field , value} = req.query;
@@ -99,7 +57,7 @@ router.get('/issued-books', async (req,res)=>{
 
         const q = `
                 SELECT b.book_id, b.book_title, b.copies_available, c.category_name, 
-                        GROUP_CONCAT(DISTINCT a.author_name ORDER BY a.author_name SEPARATOR ', ') AS author_names
+                GROUP_CONCAT(DISTINCT a.author_name ORDER BY a.author_name SEPARATOR ', ') AS author_names
                 FROM book as b 
                 JOIN category as c ON b.category_id = c.category_id 
                 JOIN book_author as ba ON ba.book_id = b.book_id 
@@ -142,6 +100,12 @@ router.post('/issue', async (req, res) => {
 
         if (issuedResult.length > 0) {
             return res.status(400).json({ message: 'This user has already issued this book' });
+        }
+        // Check whether this user has already requested this book in book_request table.
+        const requestCheck = "SELECT * FROM book_request WHERE book_id = ? AND user_id = ?";
+        const [requestResult] = await db.query(requestCheck, [bookId, userId]);
+        if (requestResult.length > 0) {
+            return res.status(400).json({ message: 'This user has already requested this book' });
         }
 
         // ✅ Check book availability
