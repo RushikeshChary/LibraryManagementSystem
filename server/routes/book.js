@@ -2,6 +2,8 @@ import express from 'express';
 import db from "../db/connection.js";
 const router = express.Router();
 
+const FINE_LIMIT = 100; // Fine limit for a user
+
 router.get('/search', async (req, res) => {
     try {
         const { field , value} = req.query;
@@ -107,7 +109,18 @@ router.post('/issue', async (req, res) => {
         if (requestResult.length > 0) {
             return res.status(400).json({ message: 'This user has already requested this book' });
         }
-
+        // Calculate fine if any for this user and do not allow issue if it passes certain limit.
+        const fine_query = `
+            SELECT SUM(fine_amount) as total_fine 
+            FROM fine_due 
+            JOIN book_issue ON fine_due.fine_due_id = book_issue.issue_id 
+            WHERE book_issue.user_id = ?`;
+        const [fineResult] = await db.query(fine_query, [userId]);
+        const totalFine = fineResult[0].total_fine;
+        console.log("🔍 Total Fine:", totalFine);
+        if (totalFine >= FINE_LIMIT) {
+            return res.status(400).json({ message: 'This user has exceeded the fine limit' });
+        }
         // ✅ Check book availability
         const availabilityCheck = "SELECT copies_available FROM book WHERE book_id = ?";
         const [availableResult] = await db.query(availabilityCheck, [bookId]);
