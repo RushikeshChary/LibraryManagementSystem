@@ -13,18 +13,20 @@ router.get('/search', async (req, res) => {
         {
             case 'title':
                 query = `
-                    SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name 
+                    SELECT b.book_id, b.book_title, b.copies_available, c.category_name,
+                            GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors 
                     FROM book as b 
                     JOIN category as c ON b.category_id = c.category_id 
                     JOIN book_author as ba ON ba.book_id = b.book_id 
                     JOIN author as a ON ba.author_id = a.author_id 
-                    WHERE book_title LIKE ?`
+                    WHERE book_title LIKE ?
+                    GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name`
                 break;
             case 'author':
                 // query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE a.author_name LIKE ?"
                 query = `
                     SELECT b.book_id, b.book_title, b.copies_available, c.category_name, 
-                    GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors
+                            GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors
                     FROM book AS b 
                     JOIN category AS c ON b.category_id = c.category_id 
                     JOIN book_author AS ba ON ba.book_id = b.book_id 
@@ -34,7 +36,15 @@ router.get('/search', async (req, res) => {
                 `;
                 break;
             case 'category':
-                query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE c.category_name LIKE ?"
+                query = `
+                        SELECT b.book_id, b.book_title, b.copies_available, c.category_name,
+                                GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors
+                        FROM book as b 
+                        JOIN category as c ON b.category_id = c.category_id 
+                        JOIN book_author as ba ON ba.book_id = b.book_id 
+                        JOIN author as a ON ba.author_id = a.author_id 
+                        WHERE c.category_name LIKE ?
+                        GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name`
                 break;
             default:
                 return res.status(400).json({ message: 'Invalid search field' });
