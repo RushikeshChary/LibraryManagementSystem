@@ -4,6 +4,7 @@ dotenv.config();
 import user from "./routes/user.js";
 import book from "./routes/book.js";
 import db from "./db/connection.js";
+import manager from "./routes/manager.js";
 
 const app = express();
 const Port = process.env.PORT || 8080;
@@ -28,7 +29,7 @@ app.use('/user',user);
 
 app.use('/book', book);
 
-
+app.use('/manager', manager);
 
 
 
