@@ -9,25 +9,38 @@ const manager_hardcoded = {
 }
 
 // Manager login router.
-router.post('/login', (req, res) => {
-    // Verify manager credentials and generate JWT token.
-    // For demonstration purposes, we're just returning a hardcoded token.
-    const managerToken = 'your_manager_token';
-    // For now, use some hardcoded credentials i.e, username, password
-    // In the future, we will use JWT token for authentication.
-    const { username, password } = req.body;
-    if (username !== 'manager' || password !== 'password') {
-        return res.status(401).json({ message: 'Invalid credentials' });
+router.post('/login',async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        if (email!== manager_hardcoded.username || password!== manager_hardcoded.password) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        let [rows] = await db.query('SELECT * FROM manager WHERE email = ?', [email]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Email does not exist! Please register...' });
+        }
+        const manager = rows[0];
+        // Compare hashed password using bcrypt
+        // const match = await bcrypt.compare(password, user.password);
+        // if (!match) {
+            // return res.status(401).json({ message: 'Invalid credentials' });
+        // }
+        if(password !== manager.password) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        // Successful login response
+        res.json({ message: 'Manager logged in successfully', manager });
+
+        
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+        
     }
-    if(manager_hardcoded.username == username && manager_hardcoded.password == password)
-    {
-        res.status(200).json({ message: 'Manager logged in successfully' });
-    }
-    // Generate JWT token
-    // In a real application, you would generate a token using a library like jsonwebtoken
-    // and sign it with a secret key.
-    // Here, we're just returning a hardcoded token.
-    // res.json({ managerToken });
+
 });
 
 // Manager logout router.
