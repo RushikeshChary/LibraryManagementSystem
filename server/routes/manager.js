@@ -58,7 +58,7 @@ router.post('/add-manager', async (req, res) => {
 
     // bcrypt the password before inserting it into the database
     // const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Insert the new manager into the database
     const query = "INSERT INTO manager (email, password, mobile_number, name) VALUES (?, ?, ?, ?)";
     await db.query(query, [email, password, mobile_number, name]);
@@ -101,20 +101,79 @@ router.get('/dashboard', async (req, res) => {
     res.json({total_users, total_books, total_current_issues});
 });
 
-// Manager user management router.
-router.get('/users',async (req, res) => {
-    // Return all users.
-    const query = "SELECT * FROM users";
-    const [res] = await db.query(query);
-
-    res.json(res);
-});
 
 // Manager could add books.
-router.post('/add-book', (req, res) => {
+router.post('/add-book', async (req, res) => {
     // Add a new book.
-    // For demonstration purposes, we're just returning a success message.
-    res.json({ message: 'Book added successfully' });
+    const { title, author, category, publication_year, floor_no, shelf_no, copies_total, copies_available } = req.body;
+    if (!title || !author || !category || !publication_year || !floor_no || !shelf_no || !copies_total || !copies_available) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+    // Check if the book already exists in the database
+    const checkQuery = "SELECT * FROM book WHERE title = ?";
+    const [existingBooks] = await db.query(checkQuery, [title]);
+    if (existingBooks.length > 0) {
+        return res.status(400).json({ message: 'Book already exists' });
+    }
+
+    // Check if the specified location (floor and shelf) is availble or not.
+    const checkLocationQuery = "SELECT * FROM location WHERE floor_no = ? AND shelf_no = ?";
+    const [existingLocations] = await db.query(checkLocationQuery, [floor_no, shelf_no]);
+
+    // Some variables.
+    let new_cat_id = "";
+    let new_author_id = "";
+    let location_id = "";
+    let book_id = "";
+
+    if (existingLocations.length > 0) {
+        return res.status(400).json({ message: 'Specified location is already taken' });
+    }
+    const insertLocationQuery = "INSERT INTO location (floor_no, shelf_no) VALUES (?,?)";
+    await db.query(insertLocationQuery, [floor_no, shelf_no], (err, result) => {
+        if (err) throw err;
+        location_id = result.insertId;
+    });
+
+
+    // check in the category and author tables if they are present already or not.
+    const checkCategoryQuery = "SELECT * FROM category WHERE name = ?";
+    const [existingCategories] = await db.query(checkCategoryQuery, [category]);
+    if (existingCategories.length === 0) {
+        const insertCategoryQuery = "INSERT INTO category (name) VALUES (?)";
+        
+        await db.query(insertCategoryQuery, [category], (err, result) => {
+            if (err) throw err;
+            new_cat_id = result.insertId;
+        });
+    }
+    else {
+        new_cat_id = existingCategories[0].category_id;
+    }
+
+    // check in the author table if the author is present or not.
+    const checkAuthorQuery = "SELECT * FROM author WHERE name = ?";
+    const [existingAuthors] = await db.query(checkAuthorQuery, [author]);
+    if (existingAuthors.length === 0) {
+        const insertAuthorQuery = "INSERT INTO author (name) VALUES (?)";
+        
+        await db.query(insertAuthorQuery, [author], (err, result) => {
+            if (err) throw err;
+            new_author_id = result.insertId;
+        });
+    }
+    else {
+        new_author_id = existingAuthors[0].author_id;
+    }
+
+    // Insert the new book into the database
+    const query = "INSERT INTO book (title, author_id, category_id, publication_year, location_id, copies_total, copies_available) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    await db.query(query, [title, new_author_id, new_cat_id, publication_year, location_id, copies_total, copies_available], (err, result) => {
+        if (err) throw err;
+        book_id = result.insertId;
+    });
+    res.json({ message: 'Book added successfully', book_id });
+
 });
 
 
