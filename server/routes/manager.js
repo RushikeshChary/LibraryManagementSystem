@@ -43,6 +43,28 @@ router.post('/login',async (req, res) => {
 
 });
 
+// Manager can add managers to the database. He needs to provid email, password, mobile number, and name.
+router.post('/add-manager', async (req, res) => {
+    const { email, password, mobile_number, name } = req.body;
+    if (!email || !password || !mobile_number || !name) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+    // Check if the email or mobile number already exists in the database
+    const checkQuery = "SELECT * FROM manager WHERE email = ? OR mobile_number = ?";
+    const [existingManagers] = await db.query(checkQuery, [email, mobile_number]);
+    if (existingManagers.length > 0) {
+        return res.status(400).json({ message: 'Email or mobile number already exists' });
+    }
+
+    // bcrypt the password before inserting it into the database
+    // const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Insert the new manager into the database
+    const query = "INSERT INTO manager (email, password, mobile_number, name) VALUES (?, ?, ?, ?)";
+    await db.query(query, [email, password, mobile_number, name]);
+    res.json({ message: 'Manager added successfully' });
+});
+
 // Search user with user_id.
 router.get('/user', async (req, res) => {
     const { user_id } = req.query;
