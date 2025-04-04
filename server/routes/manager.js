@@ -166,6 +166,12 @@ router.post('/add-book', async (req, res) => {
         new_author_id = existingAuthors[0].author_id;
     }
 
+    // Insert book_id, author_id in book_author table.
+    const insertBookAuthorQuery = "INSERT INTO book_author (book_id, author_id) VALUES (?, ?)";
+    await db.query(insertBookAuthorQuery, [book_id, new_author_id], (err, result) => {
+        if (err) throw err;
+    });
+
     // Insert the new book into the database
     const query = "INSERT INTO book (title, author_id, category_id, publication_year, location_id, copies_total, copies_available) VALUES (?, ?, ?, ?, ?, ?, ?)";
     await db.query(query, [title, new_author_id, new_cat_id, publication_year, location_id, copies_total, copies_available], (err, result) => {
