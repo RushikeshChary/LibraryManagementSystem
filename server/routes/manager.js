@@ -43,6 +43,20 @@ router.post('/login',async (req, res) => {
 
 });
 
+// Search user with user_id.
+router.get('/user', async (req, res) => {
+    const { user_id } = req.query;
+    if (!user_id) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+    const query = "SELECT * FROM users WHERE user_id = ?";
+    const [rows] = await db.query(query, [user_id]);
+    if (rows.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(rows[0]);
+});
+
 // Manager logout router.
 router.post('/logout', (req, res) => {
     // Invalidate the manager's JWT token.
