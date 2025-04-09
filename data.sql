@@ -88,6 +88,75 @@ CREATE TABLE manager(
     mobile_no VARCHAR(255) UNIQUE NOT NULL
 );
 
+CREATE TABLE book_like (
+    user_id INT,
+    book_id INT,
+    PRIMARY KEY (user_id, book_id),
+    FOREIGN KEY (user_id) REFERENCES user(user_id),
+    FOREIGN KEY (book_id) REFERENCES book(book_id)
+);
+
+
+-- Create procedures.
+-- For recommending books to users based on their likes and categories.
+DELIMITER //
+CREATE PROCEDURE get_recommendations(IN uid INT)
+BEGIN
+    -- Collaborative Recommendations
+    SELECT DISTINCT b2.book_id, b2.book_title, 'Collaborative' AS recommendation_type
+    FROM book_like bl1
+    JOIN book_like bl2 ON bl1.user_id = bl2.user_id
+    JOIN book b2 ON b2.book_id = bl2.book_id
+    WHERE bl1.book_id IN (
+        SELECT book_id FROM book_like WHERE user_id = uid
+    )
+    AND bl2.book_id NOT IN (
+        SELECT book_id FROM book_like WHERE user_id = uid
+    )
+    AND bl1.user_id != uid;
+
+    -- Category-Based Recommendations
+    SELECT DISTINCT b2.book_id, b2.book_title, 'Category-Based' AS recommendation_type
+    FROM book_like bl
+    JOIN book b1 ON bl.book_id = b1.book_id
+    JOIN book b2 ON b1.category_id = b2.category_id
+    WHERE bl.user_id = uid
+    AND b2.book_id NOT IN (
+        SELECT book_id FROM book_like WHERE user_id = uid
+    );
+END;
+//
+DELIMITER ;
+
+-- For liking a book.
+DELIMITER //
+CREATE PROCEDURE like_book_if_issued(IN uid INT, IN bid INT)
+BEGIN
+    IF NOT EXISTS (
+        SELECT * FROM book_issue
+        WHERE user_id = uid AND book_id = bid
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'User must have issued the book to like it';
+    END IF;
+
+    IF EXISTS (
+        SELECT * FROM book_like
+        WHERE user_id = uid AND book_id = bid
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'User has already liked this book';
+    END IF;
+
+    INSERT INTO book_like (user_id, book_id)
+    VALUES (uid, bid);
+END;
+//
+DELIMITER ;
+
+
+
+
 -- Create a triggers
 -- For filling fines.
 DELIMITER //

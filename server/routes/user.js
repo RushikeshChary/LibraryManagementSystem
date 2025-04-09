@@ -155,4 +155,58 @@ router.post('/pay-fine', async (req, res) => {
     }
 })
 
+
+router.post('/recommendations', async (req, res) => {
+
+    const {userId} = req.query;
+
+    try {
+        const [results] = await db.query(`CALL get_recommendations(?)`, [userId]);
+
+        // MySQL stored procedures return an array of result sets.
+        // For CALL, it's wrapped in another array, so:
+        // results[0] = collaborative
+        // results[1] = category-based
+        const collaborative = results[0];
+        const categoryBased = results[1];
+
+        res.json({
+            collaborative,
+            categoryBased
+        });
+
+    } catch (err) {
+        console.error('Error fetching recommendations:', err);
+        res.status(500).json({ error: 'Failed to get recommendations.' });
+    }
+});
+
+router.post('/like', async (req, res) => {
+    const { user_id, book_id } = req.body;
+
+    if (!user_id || !book_id) {
+        return res.status(400).json({ error: 'Missing user_id or book_id' });
+    }
+
+    try {
+        await db.query(`CALL like_book_if_issued(?, ?)`, [user_id, book_id]);
+        return res.status(200).json({ message: 'Book liked successfully!' });
+
+    } catch (error) {
+        // Custom SIGNAL from procedure shows up here
+        const message = error.sqlMessage || error.message;
+
+        if (message.includes('must have issued the book')) {
+            return res.status(403).json({ error: 'You must issue the book before liking it.' });
+        }
+
+        if (message.includes('already liked')) {
+            return res.status(409).json({ error: 'You have already liked this book.' });
+        }
+
+        console.error('Error liking book:', error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 export default router;
