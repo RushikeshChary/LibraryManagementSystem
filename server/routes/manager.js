@@ -194,13 +194,13 @@ router.get('/not-returned', async (req, res) => {
 });
 
 // Manager could delete all the successful book returns in the book_issue table.
-router.delete('/book-returns', async (req, res) => {
-    // Delete all successful book returns.
-    query = "DELETE FROM book_issue WHERE return_status = 1";
-    await db.query(query);
-    // For demonstration purposes, we're just returning a success message.
-    res.json({ message: 'All successful book returns deleted successfully' });
-});
+// router.delete('/book-returns', async (req, res) => {
+//     // Delete all successful book returns.
+//     query = "DELETE FROM book_issue WHERE return_status = 1";
+//     await db.query(query);
+//     // For demonstration purposes, we're just returning a success message.
+//     res.json({ message: 'All successful book returns deleted successfully' });
+// });
 
 
 
