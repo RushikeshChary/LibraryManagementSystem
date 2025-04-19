@@ -29,7 +29,7 @@ CREATE TABLE book(
     publication_year INTEGER,
     location_id INTEGER,
     copies_total INTEGER CHECK (copies_total >= 0),
-    copies_available INTEGER CHECK (copies_available >= 0 AND copies_available <= copies_total),
+    copies_available INTEGER CHECK (copies_available >= 0),
     FOREIGN KEY (category_id) REFERENCES category(category_id),
     FOREIGN KEY (publisher_id) REFERENCES publisher(publisher_id),
     FOREIGN KEY (location_id) REFERENCES location(location_id)

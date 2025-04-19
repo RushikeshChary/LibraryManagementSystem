@@ -21,8 +21,10 @@ function showAuthMenu() {
     console.log("\n🔐 Welcome to the Library Management System.");
     console.log("1️⃣  Login");
     console.log("2️⃣  Register");
-    console.log("3️⃣  Exit");
-    console.log("4. Search for a book");
+    console.log("3️⃣  Manager Login/Register");
+    console.log("4️⃣  Search for a book");
+    console.log("5️⃣  Exit");
+    
 
     rl.question("👉 Enter your choice: ", choice => {
         switch (choice) {
@@ -33,11 +35,14 @@ function showAuthMenu() {
                 register();
                 break;
             case '3':
-                console.log("👋  Exiting...");
-                rl.close();
+                managerLogin(); 
                 break;
             case '4':
                 searchBookMenu();
+                break;
+            case '5':
+                console.log("👋  Exiting...");
+                rl.close();
                 break;
             default:
                 console.log("❌  Invalid choice. Try again.");
@@ -133,7 +138,8 @@ function showMenu() {
     console.log("2️⃣  Borrow a Book");
     console.log("3️⃣  Return a Book");
     console.log("4️⃣  Pay Fine 💰");
-    console.log("5️⃣  Logout");
+    console.log("5️⃣  Get Recommendations");
+    console.log("6️⃣  Logout");
     rl.question("👉 Enter your choice: ", handleUserInput);
 }
 
@@ -152,6 +158,9 @@ function handleUserInput(choice) {
             checkFine();
             break;
         case '5':
+            getRecommendations();
+            break;
+        case '6':
             console.log("👋 Logging out...");
             userId = null;
             showAuthMenu();
@@ -161,6 +170,140 @@ function handleUserInput(choice) {
             showMenu();
     }
 }
+
+function managerMenu() {
+    console.log("\n👨‍💼 Manager Menu");
+    console.log("1️⃣  Register a New Manager");
+    console.log("2️⃣  View Dashboard");
+    console.log("3️⃣  Add Book");
+    console.log("4️⃣  View Users Who Haven’t Returned Books");
+    console.log("5️⃣  Logout to Main Menu");
+
+    rl.question("👉 Enter your choice: ", choice => {
+        switch (choice) {
+            case '1':
+                registerManager();
+                break;
+            case '2':
+                managerDashboard();
+                break;
+            case '3':
+                addBook();
+                break;
+            case '4':
+                usersNotReturned();
+                break;
+            case '5':
+                showAuthMenu();
+                break;
+            default:
+                console.log("❌ Invalid choice.");
+                managerMenu();
+        }
+    });
+}
+
+function managerLogin() {
+    rl.question("📧 Manager Email: ", email => {
+        rl.question("🔑 Password: ", password => {
+            axios.post(`${serverUrl}/manager/login`, { email, password })
+                .then(response => {
+                    console.log("✅ " + response.data.message);
+                    managerMenu();
+                })
+                .catch(err => {
+                    console.error("❌ " + (err.response?.data?.message || err.message));
+                    managerMenu();
+                });
+        });
+    });
+}
+
+function registerManager() {
+    rl.question("📧 Email: ", email => {
+        rl.question("🔑 Password: ", password => {
+            rl.question("📱 Mobile Number: ", mobile_number => {
+                rl.question("👤 Name: ", name => {
+                    axios.post(`${serverUrl}/manager/add-manager`, {
+                        email, password, mobile_number, name
+                    }).then(response => {
+                        console.log("✅ " + response.data.message);
+                        managerMenu();
+                    }).catch(err => {
+                        console.error("❌ " + (err.response?.data?.message || err.message));
+                        managerMenu();
+                    });
+                });
+            });
+        });
+    });
+}
+
+function managerDashboard() {
+    axios.get(`${serverUrl}/manager/dashboard`)
+        .then(response => {
+            console.log("\n📊 Dashboard:");
+            const data = response.data;
+            console.log(`👥 Total Users: ${data.users.total_users}`);
+            console.log(`📚 Total Books: ${data.books.total_books}`);
+            console.log(`📖 Currently Issued Books: ${data.current_issues.total_issues}`);
+            managerMenu();
+        })
+        .catch(err => {
+            console.error("❌ " + (err.response?.data?.message || err.message));
+            managerMenu();
+        });
+}
+
+function addBook() {
+    console.log("\n📚 Add a New Book");
+    rl.question("📖 Title: ", title => {
+        rl.question("✍️ Author: ", author => {
+            rl.question("📂 Category: ", category => {
+                rl.question("📅 Publication Year: ", publication_year => {
+                    rl.question("🏢 Floor Number: ", floor_no => {
+                        rl.question("📦 Shelf Number: ", shelf_no => {
+                            rl.question("🔢 Total Copies: ", copies_total => {
+                                axios.post(`${serverUrl}/manager/add-book`, {
+                                    title, author, category, publication_year,
+                                    floor_no, shelf_no, copies_total
+                                }).then(response => {
+                                    console.log("✅ " + response.data.message);
+                                    managerMenu();
+                                }).catch(err => {
+                                    console.error("❌ " + (err.response?.data?.message || err.message));
+                                    managerMenu();
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+}
+
+function usersNotReturned() {
+    axios.get(`${serverUrl}/manager/not-returned`)
+        .then(response => {
+            const users = response.data;
+            if (users.length === 0) {
+                console.log("✅ No pending returns!");
+            } else {
+                console.log("\n📋 Users with Unreturned Books:");
+                users.forEach(entry => {
+                    console.log(`👤 User ID: ${entry.user_id} | 📘 Book ID: ${entry.book_id} | 🗓️ Return Due: ${entry.return_date}`);
+                });
+            }
+            managerMenu();
+        })
+        .catch(err => {
+            console.error("❌ " + (err.response?.data?.message || err.message));
+            managerMenu();
+        });
+}
+
+
 
 // Search for books
 function searchBookMenu() {
@@ -200,26 +343,55 @@ function searchBooks(field, value) {
     axios.get(`${serverUrl}/book/search`, { params: { field, value } })
         .then(response => {
             if (response.data.length === 0) {
-                console.log("⚠️  No books found.");
-            } else {
-                console.log("\n🔍 Search Results:");
-                // response.data.forEach(book => {
-                //     console.log(`${book.id}. ${book.title} by ${book.author} [Category: ${book.category}] (${book.copies_available ? '✅ Available' : '❌ Borrowed'})`);
-                // });
-                console.log(response.data);
+                console.log("⚠️ No books found.");
+                return userId ? showMenu() : searchBookMenu();
             }
-            if(!userId){
-                searchBookMenu();
-            }else{
-                showMenu();
-            }
+
+            console.log("\n🔍 Search Results:");
+            response.data.forEach(book => {
+                console.log(`Book ID = ${book.book_id}, ${book.book_title} by ${book.authors} [Category: ${book.category_name}] (${book.copies_available ? '✅ Available' : '❌ Borrowed'})`);
+            });
+
+            rl.question("\nWould you like to like any of these books? (Enter Book ID or 'no' to skip): ", input => {
+                if (input.toLowerCase() === 'no') {
+                    return userId ? showMenu() : searchBookMenu();
+                }
+            
+                const bookId = parseInt(input.trim(), 10);
+                if (isNaN(bookId)) {
+                    console.log("⚠️ Invalid Book ID. Returning to menu.");
+                    return userId ? showMenu() : searchBookMenu();
+                }
+            
+                // ✅ Print the book ID
+                console.log(`📌 You liked the Book: ${book_title}`);
+                likeBook(bookId);
+            });
             
         })
         .catch(error => {
-            console.error("⚠️  Error searching books:", error.message);
+            console.error("⚠️ Error searching books:", error.message);
+            return userId ? showMenu() : searchBookMenu();
+        });
+}
+
+
+// Like a book
+function likeBook(bookId) {
+    axios.post(`${serverUrl}/user/like`, { user_id: userId, book_id: bookId })
+        .then(response => {
+            console.log(`✅ Book liked successfully!`);
             if(!userId){
                 searchBookMenu();
-            }else{
+            } else {
+                showMenu();
+            }
+        })
+        .catch(error => {
+            console.error("⚠️ Error liking the book:", error.response?.data?.error || error.message);
+            if(!userId){
+                searchBookMenu();
+            } else {
                 showMenu();
             }
         });
@@ -385,6 +557,34 @@ function payFine(selectedFineIds) {
         })
         .catch(error => {
             console.error(`⚠️  ${error.response?.data?.error || error.message}`);
+            showMenu();
+        });
+}
+
+
+function getRecommendations() {
+    if (!userId) {
+        console.log("❌ You need to be logged in to get recommendations.");
+        showMenu();
+        return;
+    }
+
+    axios.post(`${serverUrl}/user/recommendations`, null, { params: { userId } })
+        .then(response => {
+            const { collaborative, categoryBased } = response.data;
+            console.log("\n📚 Collaborative Recommendations:");
+            collaborative.forEach(book => {
+                console.log(`${book.title} by ${book.author}`);
+            });
+
+            console.log("\n📚 Category-Based Recommendations:");
+            categoryBased.forEach(book => {
+                console.log(`${book.title} by ${book.author}`);
+            });
+            showMenu();
+        })
+        .catch(error => {
+            console.error("❌ Error fetching recommendations:", error.message);
             showMenu();
         });
 }
