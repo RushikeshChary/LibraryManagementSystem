@@ -209,4 +209,28 @@ router.post('/like', async (req, res) => {
     }
 });
 
+// router to dislike some liked book.
+router.post('/dislike', async (req, res) => {
+    const { user_id, book_id } = req.body;
+
+    if (!user_id || !book_id) {
+        return res.status(400).json({ error: 'Missing user_id or book_id' });
+    }
+
+    try {
+        await db.query(`CALL dislike_book(?, ?)`, [user_id, book_id]);
+        return res.status(200).json({ message: 'Book disliked successfully!' });
+
+    } catch (error) {
+        // Custom SIGNAL from procedure shows up here
+        const message = error.sqlMessage || error.message;
+        
+        if (message.includes('must have liked the book')) {
+            return res.status(403).json({ error: 'You must like the book before disliking it.' });
+        }
+        console.error('Error disliking book:', error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 export default router;

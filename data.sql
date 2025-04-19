@@ -154,7 +154,24 @@ END;
 //
 DELIMITER ;
 
+-- In the same way, create a procedure for disliking a book.
+DELIMITER //
+CREATE PROCEDURE dislike_book(IN uid INT, IN bid INT)
+BEGIN
+    -- check if the user has liked it or not
+    IF NOT EXISTS (
+        SELECT * FROM book_like
+        WHERE user_id = uid AND book_id = bid
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'User must have liked the book to dislike it';
+    END IF;
 
+    DELETE FROM book_like
+    WHERE user_id = uid AND book_id = bid;
+END;
+//
+DELIMITER ;
 
 
 -- Create a triggers
