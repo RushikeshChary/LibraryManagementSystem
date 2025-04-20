@@ -21,7 +21,7 @@ function showAuthMenu() {
     console.log("\n🔐 Welcome to the Library Management System.");
     console.log("1️⃣  Login");
     console.log("2️⃣  Register");
-    console.log("3️⃣  Manager Login/Register");
+    console.log("3️⃣  Manager Login");
     console.log("4️⃣  Search for a book");
     console.log("5️⃣  Exit");
     
@@ -213,7 +213,7 @@ function managerLogin() {
                 })
                 .catch(err => {
                     console.error("❌ " + (err.response?.data?.message || err.message));
-                    managerMenu();
+                    showAuthMenu();
                 });
         });
     });
@@ -257,28 +257,55 @@ function managerDashboard() {
 
 function addBook() {
     console.log("\n📚 Add a New Book");
+
     rl.question("📖 Title: ", title => {
-        rl.question("✍️ Author: ", author => {
-            rl.question("📂 Category: ", category => {
-                rl.question("📅 Publication Year: ", publication_year => {
-                    rl.question("🏢 Floor Number: ", floor_no => {
-                        rl.question("📦 Shelf Number: ", shelf_no => {
-                            rl.question("🔢 Total Copies: ", copies_total => {
-                                axios.post(`${serverUrl}/manager/add-book`, {
-                                    title, author, category, publication_year,
-                                    floor_no, shelf_no, copies_total
-                                }).then(response => {
-                                    console.log("✅ " + response.data.message);
-                                    managerMenu();
-                                }).catch(err => {
-                                    console.error("❌ " + (err.response?.data?.message || err.message));
-                                    managerMenu();
+        rl.question("🔢 Number of Authors: ", numAuthors => {
+            numAuthors = parseInt(numAuthors);
+            if (isNaN(numAuthors) || numAuthors <= 0) {
+                console.error("❌ Invalid number of authors.");
+                return managerMenu();
+            }
+
+            let authors = [];
+            let i = 0;
+
+            const askAuthor = () => {
+                if (i < numAuthors) {
+                    rl.question(`✍️ Author ${i + 1}: `, authorName => {
+                        authors.push(authorName);
+                        i++;
+                        askAuthor();
+                    });
+                } else {
+                    rl.question("📂 Category: ", category => {
+                        rl.question("📅 Publication Year: ", publication_year => {
+                            rl.question("🏢 Publisher Name: ", publisher_name => {
+                                rl.question("🗣️ Publication Language: ", publication_language => {
+                                    rl.question("🏢 Floor Number: ", floor_no => {
+                                        rl.question("📦 Shelf Number: ", shelf_no => {
+                                            rl.question("🔢 Total Copies: ", copies_total => {
+                                                axios.post(`${serverUrl}/manager/add-book`, {
+                                                    title, authors, category, publication_year,
+                                                    publisher_name, publication_language,
+                                                    floor_no, shelf_no, copies_total
+                                                }).then(response => {
+                                                    console.log("✅ " + response.data.message);
+                                                    managerMenu();
+                                                }).catch(err => {
+                                                    console.error("❌ " + (err.response?.data?.message || err.message));
+                                                    managerMenu();
+                                                });
+                                            });
+                                        });
+                                    });
                                 });
                             });
                         });
                     });
-                });
-            });
+                }
+            };
+
+            askAuthor();
         });
     });
 }
@@ -292,7 +319,7 @@ function usersNotReturned() {
             } else {
                 console.log("\n📋 Users with Unreturned Books:");
                 users.forEach(entry => {
-                    console.log(`👤 User ID: ${entry.user_id} | 📘 Book ID: ${entry.book_id} | 🗓️ Return Due: ${entry.return_date}`);
+                    console.log(`👤 User ID: ${entry.user_id} | 📘 Book ID: ${entry.book_id} | 🗓️  Return Due - date: ${new Date(entry.return_date).toLocaleDateString()}`);
                 });
             }
             managerMenu();
