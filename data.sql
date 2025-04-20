@@ -282,3 +282,5 @@ INSERT INTO book_issue (user_id, book_id, issue_date, return_date) VALUES (1, 1,
 
 INSERT INTO book_request (user_id, book_id, request_date) VALUES (2,4,'2025-03-16'),(4,4,'2025-03-15'),(8,2,'2025-03-20'),(1,2,'2025-03-17');
 
+INSERT INTO manager (name, email, password, mobile_no) VALUES 
+('Abc', 'abc_man@example.com', '234', '1234567890')
