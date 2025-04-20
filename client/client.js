@@ -278,16 +278,46 @@ function addBook() {
                     });
                 } else {
                     rl.question("📂 Category: ", category => {
-                        rl.question("📅 Publication Year: ", publication_year => {
+                        rl.question("📅 Publication Year: ", publication_year_str => {
+                            const publication_year = parseInt(publication_year_str);
+                            if (isNaN(publication_year)) {
+                                console.error("❌ Invalid publication year.");
+                                return managerMenu();
+                            }
+
                             rl.question("🏢 Publisher Name: ", publisher_name => {
                                 rl.question("🗣️ Publication Language: ", publication_language => {
-                                    rl.question("🏢 Floor Number: ", floor_no => {
-                                        rl.question("📦 Shelf Number: ", shelf_no => {
-                                            rl.question("🔢 Total Copies: ", copies_total => {
+                                    rl.question("🏢 Floor Number: ", floor_no_str => {
+                                        const floor_no = parseInt(floor_no_str);
+                                        if (isNaN(floor_no)) {
+                                            console.error("❌ Invalid floor number.");
+                                            return managerMenu();
+                                        }
+
+                                        rl.question("📦 Shelf Number: ", shelf_no_str => {
+                                            const shelf_no = parseInt(shelf_no_str);
+                                            if (isNaN(shelf_no)) {
+                                                console.error("❌ Invalid shelf number.");
+                                                return managerMenu();
+                                            }
+
+                                            rl.question("🔢 Total Copies: ", copies_total_str => {
+                                                const copies_total = parseInt(copies_total_str);
+                                                if (isNaN(copies_total) || copies_total <= 0) {
+                                                    console.error("❌ Invalid number of copies.");
+                                                    return managerMenu();
+                                                }
+
                                                 axios.post(`${serverUrl}/manager/add-book`, {
-                                                    title, authors, category, publication_year,
-                                                    publisher_name, publication_language,
-                                                    floor_no, shelf_no, copies_total
+                                                    title,
+                                                    authors,
+                                                    category,
+                                                    publication_year,
+                                                    publisher_name,
+                                                    publication_language,
+                                                    floor_no,
+                                                    shelf_no,
+                                                    copies_total
                                                 }).then(response => {
                                                     console.log("✅ " + response.data.message);
                                                     managerMenu();
