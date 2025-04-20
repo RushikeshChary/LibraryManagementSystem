@@ -30,6 +30,7 @@ CREATE TABLE book(
     location_id INTEGER,
     copies_total INTEGER CHECK (copies_total >= 0),
     copies_available INTEGER CHECK (copies_available >= 0),
+    no_of_likes INTEGER DEFAULT 0,
     FOREIGN KEY (category_id) REFERENCES category(category_id),
     FOREIGN KEY (publisher_id) REFERENCES publisher(publisher_id),
     FOREIGN KEY (location_id) REFERENCES location(location_id)
@@ -96,6 +97,12 @@ CREATE TABLE book_like (
     FOREIGN KEY (book_id) REFERENCES book(book_id)
 );
 
+-- Create indexes.
+CREATE INDEX idx_book ON book(no_of_likes DESC);
+CREATE INDEX idx_book_issue ON book_issue(book_id, user_id);
+CREATE INDEX idx_book_category ON book(category_id);
+CREATE INDEX idx_bookauthor_bookid ON book_author(book_id);
+CREATE INDEX idx_bookauthor_authorid ON book_author(author_id);
 
 -- Create procedures.
 -- For recommending books to users based on their likes and categories.
@@ -194,9 +201,35 @@ BEGIN
         -- Insert record into fine_due table
         IF fine_amount > 0 THEN
             INSERT INTO fine_due (fine_due_id, user_id, fine_date, fine_amount)
-            VALUES (NEW.user_id, NEW.return_date, fine_amount);
+            VALUES (OLD.issue_id, NEW.user_id, NEW.return_date, fine_amount);
         END IF;
     END IF;
+END;
+//
+DELIMITER ;
+
+-- For updating the number of likes in the book table.
+DELIMITER //
+CREATE TRIGGER increment_likes
+AFTER INSERT ON book_like
+FOR EACH ROW
+BEGIN
+    UPDATE book
+    SET no_of_likes = no_of_likes + 1
+    WHERE book_id = NEW.book_id;
+END;
+//
+DELIMITER ;
+
+-- For decrementing the number of likes in the book table.
+DELIMITER //
+CREATE TRIGGER decrement_likes
+AFTER DELETE ON book_like
+FOR EACH ROW
+BEGIN
+    UPDATE book
+    SET no_of_likes = no_of_likes - 1
+    WHERE book_id = OLD.book_id;
 END;
 //
 DELIMITER ;

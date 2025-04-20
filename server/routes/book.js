@@ -226,7 +226,7 @@ router.post('/return', async (req, res) => {
         const [requestRes] = await db.query(request_query, [bookId]);
         //Insert this data as an issue int the book_issue table.
         if (requestRes.length > 0) {
-            const { userId } = requestRes[0];
+            const userId  = requestRes[0].user_id;
             const issue_date = new Date().toISOString().slice(0,10);
             const issue_query = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?,?,?)";
             await db.query(issue_query, [bookId, userId, issue_date]);
@@ -242,5 +242,26 @@ router.post('/return', async (req, res) => {
     }
 });
 
+// router to get top 5 books based on number of likes.
+router.get('/most-liked', async (req, res) => {
+    try {
+        const query = `
+            SELECT b.book_id, b.book_title, b.copies_available, c.category_name,
+                    GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors 
+            FROM book as b 
+            JOIN category as c ON b.category_id = c.category_id 
+            JOIN book_author as ba ON ba.book_id = b.book_id 
+            JOIN author as a ON ba.author_id = a.author_id 
+            WHERE b.no_of_likes > 0
+            GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name
+            ORDER BY b.no_of_likes DESC
+            LIMIT 5`;
+        const [rows] = await db.query(query);
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error retrieving most liked books' });
+    }
+});
 
 export default router;
