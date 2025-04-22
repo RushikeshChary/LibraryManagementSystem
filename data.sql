@@ -246,13 +246,14 @@ SET NEW.return_date = DATE_ADD(NEW.issue_date, INTERVAL 14 DAY);
 
 
 -- Insert sample data
-INSERT INTO category (category_name) VALUES ('Fiction'), ('Science'), ('History'), ('Technology'), ('Philosophy'), ('Mathematics'), ('Psychology'), ('Engineering'), ('Medicine'), ('Art');
+INSERT INTO category (category_name) VALUES ('Fiction'), ('Science'), ('History'), ('Technology'), ('Philosophy'), ('Mathematics'), ('Psychology'), ('Engineering'), ('Medicine'), ('Art'), ('Biography'), ('Politics'), ('Economics'), ('Education'), ('Environment');
 
-INSERT INTO publisher (publisher_name, publication_language) VALUES ('Penguin', 'English'), ('Springer', 'English'), ('Oxford Press', 'English'), ('HarperCollins', 'English'), ('Cambridge University Press', 'English'), ('McGraw Hill', 'English'), ('Pearson', 'English'), ('MIT Press', 'English'), ('Elsevier', 'English'), ('Routledge', 'English');
+INSERT INTO publisher (publisher_name, publication_language) VALUES ('Penguin', 'English'), ('Springer', 'English'), ('Oxford Press', 'English'), ('HarperCollins', 'English'), ('Cambridge University Press', 'English'), ('McGraw Hill', 'English'), ('Pearson', 'English'), ('MIT Press', 'English'), ('Elsevier', 'English'), ('Routledge', 'English'), ('Bloomsbury', 'English'),
+('Thames & Hudson', 'English'), ('Vintage', 'English'), ('Hachette', 'English'), ('Basic Books', 'English');
 
-INSERT INTO location (floor_no, shelf_no) VALUES (1, 5), (2, 10), (3, 15), (1, 3), (2, 7), (3, 1), (1, 9), (2, 4), (3, 8), (1, 6);
+INSERT INTO location (floor_no, shelf_no) VALUES (1, 5), (2, 10), (3, 15), (1, 3), (2, 7), (3, 1), (1, 9), (2, 4), (3, 8), (1, 6), (4, 2), (4, 5), (4, 8), (5, 1), (5, 3);
 
-INSERT INTO author (author_name) VALUES ('J.K. Rowling'), ('Stephen Hawking'), ('Yuval Noah Harari'), ('Isaac Newton'), ('Albert Einstein'), ('Sigmund Freud'), ('Marie Curie'), ('Leonardo da Vinci'), ('Charles Darwin'), ('Carl Sagan');
+INSERT INTO author (author_name) VALUES ('J.K. Rowling'), ('Stephen Hawking'), ('Yuval Noah Harari'), ('Isaac Newton'), ('Albert Einstein'), ('Sigmund Freud'), ('Marie Curie'), ('Leonardo da Vinci'), ('Charles Darwin'), ('Carl Sagan'), ('Malcolm Gladwell'), ('Noam Chomsky'), ('Barack Obama'), ('Elon Musk'), ('Jane Austen');
 
 INSERT INTO book (book_title, category_id, publisher_id, publication_year, location_id, copies_total, copies_available) VALUES 
 ('Harry Potter', 1, 1, 1997, 1, 10, 8),
@@ -264,9 +265,14 @@ INSERT INTO book (book_title, category_id, publisher_id, publication_year, locat
 ('On the Origin of Species', 3, 7, 1859, 7, 6, 5),
 ('Cosmos', 2, 8, 1980, 8, 7, 6),
 ('The Art of War', 10, 9, -500, 9, 4, 4),
-('The Double Helix', 8, 10, 1968, 10, 5, 3);
+('The Double Helix', 8, 10, 1968, 10, 5, 3),
+('Outliers', 11, 11, 2008, 11, 6, 5),
+('Who Rules the World?', 12, 12, 2016, 12, 4, 4),
+('The Audacity of Hope', 11, 13, 2006, 13, 5, 3),
+('Tesla: Inventing the Future', 8, 14, 2015, 14, 7, 6),
+('Pride and Prejudice', 1, 15, 1813, 15, 10, 9);
 
-INSERT INTO book_author (book_id, author_id) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 9), (8, 10), (9, 8), (10, 7);
+INSERT INTO book_author (book_id, author_id) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 9), (8, 10), (9, 8), (10, 7), (11, 11), (12, 12), (13, 13), (14, 14), (15, 15);
 
 INSERT INTO user (name, email, password, mobile_no) VALUES 
 ('Alice', 'alice@example.com', 'password123', '1234567890'),
