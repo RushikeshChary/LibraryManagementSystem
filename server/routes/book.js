@@ -213,6 +213,12 @@ router.post('/return', async (req, res) => {
         if (requestRes.length > 0) {
             const userId  = requestRes[0].user_id;
             const issue_date = new Date().toISOString().slice(0,10);
+            
+            // Decrease available copy count back again (since it was just incremented)
+            const decrementQuery = "UPDATE book SET copies_available = copies_available - 1 WHERE book_id = ?";
+            await db.query(decrementQuery, [bookId]);
+
+            // Issue the book to the next user in line
             const issue_query = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?,?,?)";
             await db.query(issue_query, [bookId, userId, issue_date]);
             // Delete the request from book_request table
