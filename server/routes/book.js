@@ -1,5 +1,6 @@
 import express from 'express';
 import db from "../db/connection.js";
+import { sendMail } from '../utils/mailer.js';
 const router = express.Router();
 
 const FINE_LIMIT = 100; // Fine limit for a user
@@ -211,19 +212,61 @@ router.post('/return', async (req, res) => {
         const [requestRes] = await db.query(request_query, [bookId]);
         //Insert this data as an issue int the book_issue table.
         if (requestRes.length > 0) {
-            const userId  = requestRes[0].user_id;
-            const issue_date = new Date().toISOString().slice(0,10);
-            
-            // Decrease available copy count back again (since it was just incremented)
-            const decrementQuery = "UPDATE book SET copies_available = copies_available - 1 WHERE book_id = ?";
-            await db.query(decrementQuery, [bookId]);
+            const nextRequest = requestRes[0];
+            const nextUserId = nextRequest.user_id;
+            const requestId = nextRequest.request_id;
 
-            // Issue the book to the next user in line
-            const issue_query = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?,?,?)";
-            await db.query(issue_query, [bookId, userId, issue_date]);
-            // Delete the request from book_request table
-            const delete_request_query = "DELETE FROM book_request WHERE book_id =? AND user_id =?";
-            await db.query(delete_request_query, [bookId, userId]);
+            // ✅ Notify the next user via email
+            const getEmailQuery = "SELECT email, name FROM users WHERE user_id = ?";
+            const [userRes] = await db.query(getEmailQuery, [nextUserId]);
+
+            if (userRes.length > 0) {
+                const email = userRes[0].email;
+                const name = userRes[0].name;
+
+                const bookQuery = "SELECT book_title FROM book WHERE book_id = ?";
+                const [bookRes] = await db.query(bookQuery, [bookId]);
+                const bookTitle = bookRes.length > 0 ? bookRes[0].book_title : "a book";
+
+                const message = `
+                Hi ${name},
+
+                Good news! The book "${bookTitle}" you requested has just become available and has been automatically issued to your account.
+
+                Please make sure to collect the book from the library.
+
+                Thank you,
+                Library Management System
+                `;
+
+
+                try {
+                    await sendMail({
+                        to: email,
+                        subject: `📚 Book Available: ${bookTitle}`,
+                        text: message
+                    });
+                    console.log("📧 Email sent to next user:", email);
+                } catch (emailErr) {
+                    console.error("❌ Failed to send email:", emailErr);
+                }
+            }
+
+            // Decrease the available copies again (book has just been returned and issued again)
+            const decrement_query = "UPDATE book SET copies_available = copies_available - 1 WHERE book_id = ?";
+            await db.query(decrement_query, [bookId]);
+
+            // Issue the book to the next requester
+            const newIssueDate = new Date().toISOString().slice(0, 10);
+            const issueQuery = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?, ?, ?)";
+            await db.query(issueQuery, [bookId, nextUserId, newIssueDate]);
+
+            // Delete the request from the book_request table
+            const deleteRequestQuery = "DELETE FROM book_request WHERE request_id = ?";
+            await db.query(deleteRequestQuery, [requestId]);
+
+            console.log("📖 Book issued to next requester:", nextUserId);
+
         }
         return res.status(200).json({ message: `Book returned successfully! Your fine for this book is ${fine}` });
 
