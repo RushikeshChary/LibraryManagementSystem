@@ -419,7 +419,13 @@ function searchBooks(field, value) {
                     console.log("⚠️ Invalid Book ID. Returning to menu.");
                     return userId ? showMenu() : searchBookMenu();
                 }
-            
+
+                const book = response.data.find(b => b.book_id === bookId);
+                if (!book) {
+                    console.log("⚠️ Book not found. Returning to menu.");
+                    return userId ? showMenu() : searchBookMenu();
+                }
+                const book_title = book.book_title;
                 // ✅ Print the book ID
                 console.log(`📌 You liked the Book: ${book_title}`);
                 likeBook(bookId);
