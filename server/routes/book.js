@@ -199,16 +199,16 @@ router.post('/return', async (req, res) => {
         const update_query = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ? and return_status != 1";
         await db.query(update_query, [returnDate, 1, bookId, userId]);
 
-        // Ensure a fine record exists
-        const check_fine_query = "SELECT * FROM fine_due WHERE fine_due_id = ?";
-        const [fineCheck] = await db.query(check_fine_query, [issueId]);
+        // // Ensure a fine record exists
+        // const check_fine_query = "SELECT * FROM fine_due WHERE fine_due_id = ?";
+        // const [fineCheck] = await db.query(check_fine_query, [issueId]);
 
-        if (fineCheck.length === 0) {
-            // Assuming fine amount is calculated elsewhere or set to 0 if not applicable
-            const fine = 0; 
-            const insert_fine_query = "INSERT INTO fine_due (fine_due_id, user_id, fine_date, fine_amount) VALUES (?, ?, ?, ?)";
-            await db.query(insert_fine_query, [issueId, userId, returnDate, fine]);
-        }
+        // if (fineCheck.length === 0) {
+        //     // Assuming fine amount is calculated elsewhere or set to 0 if not applicable
+        //     const fine = 0; 
+        //     const insert_fine_query = "INSERT INTO fine_due (fine_due_id, user_id, fine_date, fine_amount) VALUES (?, ?, ?, ?)";
+        //     await db.query(insert_fine_query, [issueId, userId, returnDate, fine]);
+        // }
 
         // Get fine amount
         const fine_query = `

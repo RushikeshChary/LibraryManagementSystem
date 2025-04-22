@@ -635,15 +635,27 @@ function getRecommendations() {
     axios.post(`${serverUrl}/user/recommendations`, null, { params: { userId } })
         .then(response => {
             const { collaborative, categoryBased } = response.data;
+            
+            // Collaborative Recommendations
             console.log("\n📚 Collaborative Recommendations:");
-            collaborative.forEach(book => {
-                console.log(`${book.title} by ${book.author}`);
-            });
-
+            if (collaborative.length === 0) {
+                console.log("No collaborative recommendations found yet. Like more books to improve suggestions!");
+            } else {
+                collaborative.forEach((book, index) => {
+                    console.log(`${index + 1}. ${book.book_title}`);  // Add 1 to index for proper numbering
+                });
+            }
+            
+            // Category-Based Recommendations
             console.log("\n📚 Category-Based Recommendations:");
-            categoryBased.forEach(book => {
-                console.log(`${book.title} by ${book.author}`);
-            });
+            if (categoryBased.length === 0) {
+                console.log("No category-based recommendations found yet. Like more books to improve suggestions!");
+            } else {
+                categoryBased.forEach((book, index) => {
+                    console.log(`${index + 1}. ${book.book_title}`);  // Add 1 to index for proper numbering
+                });
+            }
+            
             showMenu();
         })
         .catch(error => {
