@@ -514,17 +514,18 @@ function borrowBook(input) {
 function showIssuedBooks() {
     axios.get(`${serverUrl}/book/issued-books`, { params: { userId } })
         .then(response => {
-            if (response.data.length === 0) {
+            const books = response.data;
+            
+            if (books.length === 0) {
                 console.log("⚠️  No books issued to you.");
                 showMenu();
                 return;
             }
 
             console.log("\n📚 Your Issued Books:");
-            // response.data.forEach(book => {
-            //     console.log(`${book.id}. ${book.title} by ${book.author} [Category: ${book.category}]`);
-            // });
-            console.log(response.data);
+            books.forEach((book, index) => {
+                console.log(`${index + 1}. ${book.book_title} by ${book.author_names} [Category: ${book.category_name}] (Book ID: ${book.book_id})`);
+            });
 
             rl.question("\n🔄 Enter the Book ID you want to return: ", bookId => {
                 returnBook(bookId);
