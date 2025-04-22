@@ -139,7 +139,8 @@ function showMenu() {
     console.log("3️⃣  Return a Book");
     console.log("4️⃣  Pay Fine 💰");
     console.log("5️⃣  Get Recommendations");
-    console.log("6️⃣  Logout");
+    console.log("6️⃣  View Most Liked Books");
+    console.log("7️⃣  Logout");
     rl.question("👉 Enter your choice: ", handleUserInput);
 }
 
@@ -161,6 +162,9 @@ function handleUserInput(choice) {
             getRecommendations();
             break;
         case '6':
+            getMostLikedBooks();
+            break;
+        case '7':
             console.log("👋 Logging out...");
             userId = null;
             showAuthMenu();
@@ -691,6 +695,27 @@ function getRecommendations() {
         });
 }
 
+function getMostLikedBooks() {
+    axios.get(`${serverUrl}/book/most-liked`)
+        .then(response => {
+            const books = response.data;
+
+            if (books.length === 0) {
+                console.log("📉 No liked books found.");
+            } else {
+                console.log("\n🔥 Top 5 Most Liked Books:");
+                books.forEach((book, index) => {
+                    console.log(`${index + 1}. ${book.book_title} by ${book.authors} of category ${book.category_name} (Book ID ${book.book_id})`);
+                });
+            }
+
+            return userId ? showMenu() : searchBookMenu();
+        })
+        .catch(error => {
+            console.error("⚠️ Error fetching most liked books:", error.message);
+            return userId ? showMenu() : searchBookMenu();
+        });
+}
 
 // Phirse shuru
 showAuthMenu();
