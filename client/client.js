@@ -409,28 +409,32 @@ function searchBooks(field, value) {
                 console.log(`Book ID = ${book.book_id}, ${book.book_title} by ${book.authors} [Category: ${book.category_name}] (${book.copies_available ? '✅ Available' : '❌ Borrowed'})`);
             });
 
-            rl.question("\nWould you like to like any of these books? (Enter Book ID or 'no' to skip): ", input => {
-                if (input.toLowerCase() === 'no') {
-                    return userId ? showMenu() : searchBookMenu();
-                }
-            
-                const bookId = parseInt(input.trim(), 10);
-                if (isNaN(bookId)) {
-                    console.log("⚠️ Invalid Book ID. Returning to menu.");
-                    return userId ? showMenu() : searchBookMenu();
-                }
+            // Only ask to like if user is logged in
+            if (userId) {
+                rl.question("\nWould you like to like any of these books? (Enter Book ID or 'no' to skip): ", input => {
+                    if (input.toLowerCase() === 'no') {
+                        return showMenu();
+                    }
+                
+                    const bookId = parseInt(input.trim(), 10);
+                    if (isNaN(bookId)) {
+                        console.log("⚠️ Invalid Book ID. Returning to menu.");
+                        return showMenu();
+                    }
 
-                const book = response.data.find(b => b.book_id === bookId);
-                if (!book) {
-                    console.log("⚠️ Book not found. Returning to menu.");
-                    return userId ? showMenu() : searchBookMenu();
-                }
-                const book_title = book.book_title;
-                // ✅ Print the book ID
-                console.log(`📌 You liked the Book: ${book_title}`);
-                likeBook(bookId);
-            });
-            
+                    const book = response.data.find(b => b.book_id === bookId);
+                    if (!book) {
+                        console.log("⚠️ Book not found. Returning to menu.");
+                        return showMenu();
+                    }
+
+                    const book_title = book.book_title;
+                    likeBook(bookId, book_title);
+                });
+            } else {
+                // If not logged in, just return to search menu
+                searchBookMenu();
+            }
         })
         .catch(error => {
             console.error("⚠️ Error searching books:", error.message);
@@ -440,23 +444,16 @@ function searchBooks(field, value) {
 
 
 // Like a book
-function likeBook(bookId) {
+function likeBook(bookId, book_title) {
     axios.post(`${serverUrl}/user/like`, { user_id: userId, book_id: bookId })
         .then(response => {
+            console.log(`📌 You liked the Book: ${book_title}`);
             console.log(`✅ Book liked successfully!`);
-            if(!userId){
-                searchBookMenu();
-            } else {
-                showMenu();
-            }
+            userId ? showMenu() : searchBookMenu();
         })
         .catch(error => {
             console.error("⚠️ Error liking the book:", error.response?.data?.error || error.message);
-            if(!userId){
-                searchBookMenu();
-            } else {
-                showMenu();
-            }
+            userId ? showMenu() : searchBookMenu();
         });
 }
 
@@ -635,7 +632,7 @@ function getRecommendations() {
     axios.post(`${serverUrl}/user/recommendations`, null, { params: { userId } })
         .then(response => {
             const { collaborative, categoryBased } = response.data;
-            
+
             // Collaborative Recommendations
             console.log("\n📚 Collaborative Recommendations:");
             if (collaborative.length === 0) {

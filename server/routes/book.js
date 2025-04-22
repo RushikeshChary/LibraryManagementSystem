@@ -95,8 +95,6 @@ router.post('/issue', async (req, res) => {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        console.log(`📥 Received Issue Request: bookId=${bookId}, userId=${userId}`);
-
         const bookExistsQuery = "SELECT book_id FROM book WHERE book_id = ?";
         const [bookExists] = await db.query(bookExistsQuery, [bookId]);
 
@@ -107,8 +105,6 @@ router.post('/issue', async (req, res) => {
         // ✅ Check whether this user has already issued this book
         const queryCheck = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ? AND return_status != 1";
         const [issuedResult] = await db.query(queryCheck, [bookId, userId]);
-
-        console.log("🔍 Issue Check Result:", issuedResult);
 
         if (issuedResult.length > 0) {
             return res.status(400).json({ message: 'This user has already issued this book' });
@@ -127,7 +123,6 @@ router.post('/issue', async (req, res) => {
             WHERE book_issue.user_id = ?`;
         const [fineResult] = await db.query(fine_query, [userId]);
         const totalFine = fineResult[0].total_fine;
-        console.log("🔍 Total Fine:", totalFine);
         if (totalFine >= FINE_LIMIT) {
             return res.status(400).json({ message: 'This user has exceeded the fine limit' });
         }
@@ -199,16 +194,6 @@ router.post('/return', async (req, res) => {
         const update_query = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ? and return_status != 1";
         await db.query(update_query, [returnDate, 1, bookId, userId]);
 
-        // // Ensure a fine record exists
-        // const check_fine_query = "SELECT * FROM fine_due WHERE fine_due_id = ?";
-        // const [fineCheck] = await db.query(check_fine_query, [issueId]);
-
-        // if (fineCheck.length === 0) {
-        //     // Assuming fine amount is calculated elsewhere or set to 0 if not applicable
-        //     const fine = 0; 
-        //     const insert_fine_query = "INSERT INTO fine_due (fine_due_id, user_id, fine_date, fine_amount) VALUES (?, ?, ?, ?)";
-        //     await db.query(insert_fine_query, [issueId, userId, returnDate, fine]);
-        // }
 
         // Get fine amount
         const fine_query = `
