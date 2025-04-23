@@ -233,4 +233,62 @@ router.post('/dislike', async (req, res) => {
     }
 });
 
+
+router.get('/requested-books', async (req, res) => {
+    const { userId } = req.query;
+
+    if (!userId) {
+        return res.status(400).json({ error: 'Missing userId' });
+    }
+
+    try {
+        const query = `
+        SELECT b.book_id, b.book_title, b.copies_available, c.category_name,
+                GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors 
+        FROM book as b 
+        JOIN book_request as br ON b.book_id = br.book_id
+        JOIN category as c ON b.category_id = c.category_id 
+        JOIN book_author as ba ON ba.book_id = b.book_id 
+        JOIN author as a ON ba.author_id = a.author_id 
+        WHERE br.user_id = ?
+        GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name`;
+
+        // const query = `SELECT book.book_title, book.book_id, br.request_date
+        // FROM book_request as br
+        // JOIN book ON br.book_id = book.book_id WHERE br.user_id = ?`;
+        const [rows] = await db.query(query, [userId]);
+        return res.status(200).json(rows);
+
+    } catch (error) {
+        console.error('Error fetching requested books:', error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// A user can cancel his requested book from the request queue (i.e., in request_book table)
+router.post('/cancel-request', async (req, res) => {
+    const { userId, bookId } = req.body;
+
+    if (!userId || !bookId) {
+        return res.status(400).json({ error: 'Missing userId or bookId' });
+    }
+
+    try {
+        // Check if the request exists
+        const checkQuery = `SELECT * FROM book_request WHERE user_id = ? AND book_id = ?`;
+        const [checkResult] = await db.query(checkQuery, [userId, bookId]);
+        if (checkResult.length === 0) {
+            return res.status(406).json({ message: 'Request not found with that bookID' });
+        }
+
+        const query = `DELETE FROM book_request WHERE user_id = ? AND book_id = ?`;
+        await db.query(query, [userId, bookId]);
+        return res.status(200).json({ message: 'Request cancelled successfully!' });
+
+    } catch (error) {
+        console.error('Error cancelling request:', error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 export default router;

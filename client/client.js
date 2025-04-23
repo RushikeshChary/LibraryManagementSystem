@@ -140,7 +140,8 @@ function showMenu() {
     console.log("4️⃣  Pay Fine 💰");
     console.log("5️⃣  Get Recommendations");
     console.log("6️⃣  View Most Liked Books");
-    console.log("7️⃣  Logout");
+    console.log("7️⃣  View Requested Books");
+    console.log("8️⃣  Logout");
     rl.question("👉 Enter your choice: ", handleUserInput);
 }
 
@@ -165,6 +166,9 @@ function handleUserInput(choice) {
             getMostLikedBooks();
             break;
         case '7':
+            getRequestedBooks();
+            break;
+        case '8':
             console.log("👋 Logging out...");
             userId = null;
             showAuthMenu();
@@ -173,6 +177,48 @@ function handleUserInput(choice) {
             console.log("❌ Invalid choice. Try again.");
             showMenu();
     }
+}
+
+function getRequestedBooks() {
+    axios.get(`${serverUrl}/user/requested-books`, { params: { userId } })
+        .then(response => {
+            const books = response.data;
+
+            if (books.length === 0) {
+                console.log("📚 No requested books found.");
+                showMenu();
+            } else {
+                console.log("\n📚 Your Requested Books:");
+                books.forEach((book, index) => {
+                    console.log(`${index + 1}. ${book.book_title} by ${book.authors} [Category: ${book.category_name}] (Book ID: ${book.book_id})`);
+                });
+            }
+
+            // Ask the user whether they want to cancel any of their requests by entering the Book ID
+            rl.question("\n❓ Do you want to cancel any of your requests? (yes/no): ", answer => {
+                if (answer.toLowerCase() === 'yes') {
+                    rl.question("📖 Enter the Book ID to cancel: ", bookId => {
+                        axios.post(`${serverUrl}/user/cancel-request`, { userId, bookId })
+                            .then(response => {
+                                console.log(`✅ ${response.data.message}`);
+                                showMenu();
+                            })
+                            .catch(error => {
+                                console.error("⚠️ Error cancelling request:", error.response?.data?.message || error.message);
+                                showMenu();
+                            });
+                    });
+                } else {
+                    showMenu();
+                }
+            });
+        })
+        .catch(error => {
+            console.error("⚠️ Error fetching requested books:", error.message);
+            showMenu();
+        });
+
+    
 }
 
 function managerMenu() {
