@@ -355,7 +355,7 @@ function usersNotReturned() {
                 users.forEach((entry, index) => {
                     console.log(`${index + 1}. User ID: ${entry.user_id}`);
                     console.log(`   Email: ${entry.email}`);
-                    console.log(`   Phone: ${entry.phone}`);
+                    console.log(`   Phone: ${entry.mobile_no}`);
                     console.log(`   Book ID: ${entry.book_id}`);
                     console.log(`   Return Due Date: ${new Date(entry.return_date).toLocaleDateString()}\n`);
                 });
@@ -504,6 +504,31 @@ function borrowBook(input) {
         return;
     }
     axios.post(`${serverUrl}/book/issue`, { bookId, userId })
+        .then(response => {
+            if (response.data.message === "No copies available.") {
+                rl.question("⚠️ No copies available. Do you want to be added to the waitlist? (yes/no): ", answer => {
+                    if (answer.toLowerCase() === 'yes') {
+                        return addToWaitlist(bookId);
+                    } else {
+                        console.log("❌ Not added to waitlist.");
+                        showMenu();
+                    }
+                });
+            }
+            else
+            {
+                console.log(`✔️ ${response.data.message}`);
+                showMenu();
+            }
+        })
+        .catch(error => {
+            console.error(`⚠️ ${error.response.data.message}`);
+            showMenu();
+        });
+}
+
+function addToWaitlist(bookId) {
+    axios.post(`${serverUrl}/book/request`, { bookId, userId })
         .then(response => {
             console.log(`✔️ ${response.data.message}`);
             showMenu();

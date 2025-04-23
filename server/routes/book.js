@@ -152,12 +152,7 @@ router.post('/issue', async (req, res) => {
             return res.status(200).json({ message: 'Book issued successfully' });
         } else {
             // ✅ Add request to book_request table
-            const requestDate = new Date().toISOString().slice(0, 19).replace('T', ' '); 
-            const requestQuery = "INSERT INTO book_request (book_id, user_id, request_date) VALUES (?, ?, ?)";
-            await db.query(requestQuery, [bookId, userId, requestDate]);
-
-            console.log("🚫 No copies available, added to request list.");
-            return res.status(400).json({ message: 'No copies available. Added to request list.' });
+            return res.status(200).json({ message: 'No copies available.'});
         }
     } catch (err) {
         console.error("❌ Error Issuing Book:", err);
@@ -165,6 +160,26 @@ router.post('/issue', async (req, res) => {
     }
 });
 
+
+router.post('/request', async (req, res) => {
+    try {
+        const { bookId, userId } = req.body;
+        if (!bookId || !userId) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+        // Add request to book_request table
+        const requestDate = new Date().toISOString().slice(0, 19).replace('T', ' '); 
+        const requestQuery = "INSERT INTO book_request (book_id, user_id, request_date) VALUES (?, ?, ?)";
+        await db.query(requestQuery, [bookId, userId, requestDate]);
+
+        console.log("🚫 No copies available, added to request list.");
+        return res.status(200).json({ message: 'Book requested successfully' });
+    } catch (err) {
+        console.error("❌ Error Requesting Book:", err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+
+})
 
 // 3. book return.
 router.post('/return', async (req, res) => {

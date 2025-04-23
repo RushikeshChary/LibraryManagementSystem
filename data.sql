@@ -1,3 +1,6 @@
+CREATE DATABASE library_management_system;
+USE library_management_system;
+
 -- Initialize all the tables.
 CREATE TABLE category(
     category_id INTEGER PRIMARY KEY AUTO_INCREMENT,
