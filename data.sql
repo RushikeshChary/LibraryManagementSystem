@@ -104,6 +104,15 @@ CREATE TABLE book_like (
     FOREIGN KEY (book_id) REFERENCES book(book_id)
 );
 
+CREATE TABLE book_return(
+    return_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    user_id INTEGER,
+    book_id INTEGER,
+    return_date DATE,
+    FOREIGN KEY (user_id) REFERENCES user(user_id),
+    FOREIGN KEY (book_id) REFERENCES book(book_id)
+);
+
 -- Create indexes.
 CREATE INDEX idx_book ON book(no_of_likes DESC);
 CREATE INDEX idx_book_issue ON book_issue(book_id, user_id);

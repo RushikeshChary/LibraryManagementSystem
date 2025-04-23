@@ -227,7 +227,8 @@ function managerMenu() {
     console.log("2️⃣  View Dashboard");
     console.log("3️⃣  Add Book");
     console.log("4️⃣  View Users Who Haven’t Returned Books");
-    console.log("5️⃣  Logout to Main Menu");
+    console.log("5️⃣  View Return Requests");
+    console.log("6️⃣  Logout to Main Menu");
 
     rl.question("👉 Enter your choice: ", choice => {
         switch (choice) {
@@ -244,6 +245,9 @@ function managerMenu() {
                 usersNotReturned();
                 break;
             case '5':
+                returnRequests();
+                break;
+            case '6':
                 showAuthMenu();
                 break;
             default:
@@ -251,6 +255,46 @@ function managerMenu() {
                 managerMenu();
         }
     });
+}
+
+function returnRequests() {
+    axios.get(`${serverUrl}/manager/return-requests`)
+        .then(response => {
+            const requests = response.data;
+            if (requests.length === 0) {
+                console.log("✅ No return requests found.");
+                managerMenu();
+            } else {
+                console.log("\n📚 Return Requests:");
+                requests.forEach((request, index) => {
+                    console.log(`${index + 1}. User ID: ${request.user_id}, Book ID: ${request.book_id}, Request Date: ${new Date(request.return_date).toLocaleDateString()} (Request ID: ${request.return_id})`);
+                });
+            }
+            // Ask the manager to approve or reject a request
+            rl.question("\n❓ Do you want to approve or reject any requests? (yes/no): ", answer => {
+                if (answer.toLowerCase() === 'yes') {
+                    rl.question("📖 Enter the Request ID to approve/reject: ", returnId => {
+                        rl.question("✅ Approve or ❌ Reject? (approve/reject): ", action => {
+                            axios.post(`${serverUrl}/manager/manage-return`, { returnId, action })
+                                .then(response => {
+                                    console.log(`✅ ${response.data.message}`);
+                                    managerMenu();
+                                })
+                                .catch(error => {
+                                    console.error("⚠️ Error handling request:", error.response?.data?.message || error.message);
+                                    managerMenu();
+                                });
+                        });
+                    });
+                } else {
+                    managerMenu();
+                }
+            });
+        })
+        .catch(err => {
+            console.error("❌ " + (err.response?.data?.message || err.message));
+            managerMenu();
+        });
 }
 
 function managerLogin() {
@@ -621,7 +665,8 @@ function returnBook(input) {
         return;
     }
 
-    axios.post(`${serverUrl}/book/return`, { bookId, userId })
+    // axios.post(`${serverUrl}/book/return`, { bookId, userId })
+    axios.post(`${serverUrl}/book/request-return`, { bookId, userId })
         .then(response => {
             console.log(`⚠️ ${response.data.message}`);
             showMenu();

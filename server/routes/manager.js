@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db/connection.js';
+import { sendMail } from '../utils/mailer.js';
 
 const router = express.Router();
 
@@ -204,6 +205,182 @@ router.get('/not-returned', async (req, res) => {
     const [usersNotReturned] = await db.query(query);
 
     res.json(usersNotReturned);
+});
+
+// router for viewing all the return requests made by users.
+router.get('/return-requests', async (req, res) => {
+    try {
+        // Fetch all return requests from the database
+        const query = "SELECT * FROM book_return";
+        const [returnRequests] = await db.query(query);
+        if (returnRequests.length === 0) {
+            return res.status(404).json({ message: 'No return requests found' });
+        }
+        res.json(returnRequests);
+    } catch (error) {
+        console.error("❌ Error fetching return requests:", error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// router for manager to accept or reject return request.
+router.post('/manage-return', async (req, res) => {
+    try {
+        const { returnId, action } = req.body;
+        if (!returnId || !action) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // Check if the return request exists
+        const checkQuery = "SELECT * FROM book_return WHERE return_id = ?";
+        const [checkResult] = await db.query(checkQuery, [returnId]);
+
+        if (checkResult.length === 0) {
+            return res.status(404).json({ message: 'Return request not found' });
+        }
+
+        // If accepted, update the book_issue table and delete from book_return table
+        if (action === 'approve') {
+            const { book_id, user_id, return_date } = checkResult[0];
+
+            const get_id = "SELECT * FROM book_issue as b WHERE b.return_status = ? AND b.book_id = ? AND b.user_id = ?";
+            const [issueIdRes] = await db.query(get_id, [0, book_id, user_id]);
+            const issueId = issueIdRes[0].issue_id;
+            
+            const issueUpdateQuery = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ? and return_status != 1";
+            await db.query(issueUpdateQuery, [return_date, 1, book_id, user_id]);
+
+            // Delete from book_return table
+            const deleteQuery = "DELETE FROM book_return WHERE return_id = ?";
+            await db.query(deleteQuery, [returnId]);
+
+            // Update the book's copies_available.
+            const increment_query = "UPDATE book SET copies_available = copies_available + 1 WHERE book_id = ?";
+            await db.query(increment_query, [book_id]);
+
+            // Get fine amount
+            const fine_query = `
+                SELECT fine_amount 
+                FROM fine_due 
+                JOIN book_issue ON fine_due.fine_due_id = book_issue.issue_id
+                WHERE book_issue.issue_id = ?`;
+            const [fineRes] = await db.query(fine_query, [issueId]);
+
+            const fine = fineRes.length > 0 ? fineRes[0].fine_amount : 0;
+            // const fine = fineRes[0].fine_amount;
+
+            //Now check in the book_request table whether anyone has requested this book. In case of multiple requests, pick the one with least request_date
+            const request_query = "SELECT * FROM book_request WHERE book_id =? ORDER BY request_date ASC LIMIT 1";
+            const [requestRes] = await db.query(request_query, [book_id]);
+            //Insert this data as an issue int the book_issue table.
+            if (requestRes.length > 0) {
+                const nextRequest = requestRes[0];
+                const nextUserId = nextRequest.user_id;
+                // const requestId = nextRequest.request_id;
+
+                // ✅ Notify the next user via email
+                const getEmailQuery = "SELECT email, name FROM user WHERE user_id = ?";
+                const [userRes] = await db.query(getEmailQuery, [nextUserId]);
+
+                if (userRes.length > 0) {
+                    const email = userRes[0].email;
+                    const name = userRes[0].name;
+
+                    const bookQuery = "SELECT book_title FROM book WHERE book_id = ?";
+                    const [bookRes] = await db.query(bookQuery, [book_id]);
+                    const bookTitle = bookRes.length > 0 ? bookRes[0].book_title : "a book";
+
+                    const message = `
+                    Hi ${name},
+
+                    Good news! The book "${bookTitle}" you requested has just become available and has been automatically issued to your account.
+
+                    Please make sure to collect the book from the library.
+
+                    Thank you,
+                    Library Management System
+                    `;
+
+
+                    try {
+                        await sendMail({
+                            to: email,
+                            subject: `📚 Book Available: ${bookTitle}`,
+                            text: message
+                        });
+                        console.log("📧 Email sent to next user:", email);
+                    } catch (emailErr) {
+                        console.error("❌ Failed to send email:", emailErr);
+                    }
+                }
+
+                // Decrease the available copies again (book has just been returned and issued again)
+                const decrement_query = "UPDATE book SET copies_available = copies_available - 1 WHERE book_id = ?";
+                await db.query(decrement_query, [book_id]);
+
+                // Issue the book to the next requester
+                const newIssueDate = new Date().toISOString().slice(0, 10);
+                const issueQuery = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?, ?, ?)";
+                await db.query(issueQuery, [book_id, nextUserId, newIssueDate]);
+
+                // Delete the request from the book_request table
+                const deleteRequestQuery = "DELETE FROM book_request WHERE user_id = ? AND book_id = ?";
+                await db.query(deleteRequestQuery, [nextUserId, book_id]);
+
+                console.log("📖 Book issued to next requester:", nextUserId);
+
+            }
+
+            console.log("✅ Return request accepted and processed successfully!");
+            // Notify the user via email regarding the acceptance of return request and his fine.
+            const getEmailQuery = "SELECT email, name FROM user WHERE user_id = ?";
+            const [userRes] = await db.query(getEmailQuery, [user_id]);
+            if (userRes.length > 0) {
+                const email = userRes[0].email;
+                const name = userRes[0].name;
+
+                const bookQuery = "SELECT book_title FROM book WHERE book_id = ?";
+                const [bookRes] = await db.query(bookQuery, [book_id]);
+                const bookTitle = bookRes.length > 0 ? bookRes[0].book_title : "a book";
+
+                const message = `
+                Hi ${name},
+
+                Your return request for the book "${bookTitle}" has been accepted and processed successfully.
+
+                Your fine for this book is ${fine}.
+
+                Thank you,
+                Library Management System
+                `;
+                try {
+                    await sendMail({
+                        to: email,
+                        subject: `📚 Return Request Accepted: ${bookTitle}`,
+                        text: message
+                    });
+                    console.log("📧 Email sent to user:", email);
+                } catch (emailErr) {
+                    console.error("❌ Failed to send email:", emailErr);
+                }
+            }
+            return res.status(200).json({ message: 'Return request accepted and processed successfully' });
+        } else if(action === 'reject') {
+            // If rejected, delete from book_return table
+            const deleteQuery = "DELETE FROM book_return WHERE return_id = ?";
+            await db.query(deleteQuery, [returnId]);
+
+            console.log("❌ Return request rejected successfully!");
+            return res.status(200).json({ message: 'Return request rejected successfully' });
+        }
+        else
+        {
+            return res.status(400).json({ message: 'Invalid status' });
+        }
+    } catch (err) {
+        console.error("❌ Error Managing Return Request:", err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
 
 // Manager could delete all the successful book returns in the book_issue table.

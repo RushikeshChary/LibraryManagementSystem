@@ -229,7 +229,7 @@ router.post('/return', async (req, res) => {
         if (requestRes.length > 0) {
             const nextRequest = requestRes[0];
             const nextUserId = nextRequest.user_id;
-            const requestId = nextRequest.request_id;
+            const bookId = nextRequest.book_id;
 
             // ✅ Notify the next user via email
             const getEmailQuery = "SELECT email, name FROM users WHERE user_id = ?";
@@ -290,6 +290,39 @@ router.post('/return', async (req, res) => {
         res.status(500).json({ message: 'Error returning book' });
     }
 });
+
+// Instead of updating the tables directly in the database when a user make a return digitally, store that information in a new table called book_return. Now, the manager will have access to this table and can accept or reject the return. If accepted, the manager will update the book_issue table and delete the entry from book_return table. If rejected, the manager will delete the entry from book_return table and the user will be notified via email whether his return is accepted or rejected. This new table will have the following fields: return_id, book_id, user_id, return_date.
+
+
+// router for user to request return.
+router.post('/request-return', async (req, res) => {
+    try {
+        const { bookId, userId } = req.body;
+        if (!bookId || !userId) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // Check whether this book is issued by this user or not.
+        const issue_check = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ? and return_status = 0";
+        const [issueRes] = await db.query(issue_check, [bookId, userId]);
+
+        if (issueRes.length === 0) {
+            return res.status(200).json({ message: 'This book is not issued to you' });
+        }
+
+        // Add request to book_return table
+        const returnDate = new Date().toISOString().slice(0, 10); // Format as 'YYYY-MM-DD'
+        const requestQuery = "INSERT INTO book_return (book_id, user_id, return_date) VALUES (?, ?, ?)";
+        await db.query(requestQuery, [bookId, userId, returnDate]);
+
+        console.log("📦 Return request submitted successfully!");
+        return res.status(200).json({ message: 'Return request submitted successfully! Library Manager has to verify your return (You will be notified via email regarding the action taken)' });
+    } catch (err) {
+        console.error("❌ Error Requesting Return:", err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 
 // router to get top 5 books based on number of likes.
 router.get('/most-liked', async (req, res) => {
