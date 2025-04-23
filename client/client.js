@@ -349,17 +349,21 @@ function usersNotReturned() {
         .then(response => {
             const users = response.data;
             if (users.length === 0) {
-                console.log("✅ No pending returns!");
+                console.log("✅ No pending returns.");
             } else {
-                console.log("\n📋 Users with Unreturned Books:");
-                users.forEach(entry => {
-                    console.log(`👤 User ID: ${entry.user_id} | 📘 Book ID: ${entry.book_id} | 🗓️  Return Due - date: ${new Date(entry.return_date).toLocaleDateString()}`);
+                console.log("\nUsers with Unreturned Books:");
+                users.forEach((entry, index) => {
+                    console.log(`${index + 1}. User ID: ${entry.user_id}`);
+                    console.log(`   Email: ${entry.email}`);
+                    console.log(`   Phone: ${entry.phone}`);
+                    console.log(`   Book ID: ${entry.book_id}`);
+                    console.log(`   Return Due Date: ${new Date(entry.return_date).toLocaleDateString()}\n`);
                 });
             }
             managerMenu();
         })
         .catch(err => {
-            console.error("❌ " + (err.response?.data?.message || err.message));
+            console.error("Error: " + (err.response?.data?.message || err.message));
             managerMenu();
         });
 }
@@ -515,7 +519,7 @@ function showIssuedBooks() {
     axios.get(`${serverUrl}/book/issued-books`, { params: { userId } })
         .then(response => {
             const books = response.data;
-            
+
             if (books.length === 0) {
                 console.log("⚠️  No books issued to you.");
                 showMenu();

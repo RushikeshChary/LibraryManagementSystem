@@ -197,9 +197,10 @@ router.post('/add-book', async (req, res) => {
 // Manager could look at all the users who have not returned any book.
 router.get('/not-returned', async (req, res) => {
     // Return all users who have not returned any book.
-    let query =  `SELECT u.user_id, bi.book_id, bi.return_date FROM user as u
-              JOIN book_issue as bi ON u.user_id = bi.user_id
-              WHERE bi.return_status = 0`;
+    let query =  `SELECT u.user_id, u.email, u.mobile_no, bi.book_id, bi.return_date 
+                  FROM user AS u
+                  JOIN book_issue AS bi ON u.user_id = bi.user_id
+                  WHERE bi.return_status = 0`;
     const [usersNotReturned] = await db.query(query);
 
     res.json(usersNotReturned);
