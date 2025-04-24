@@ -8,7 +8,6 @@ const FINE_LIMIT = 100; // Fine limit for a user
 router.get('/search', async (req, res) => {
     try {
         const { field , value} = req.query;
-        // const { value } = req.params;
         var query = ""
         switch (field)
         {
@@ -24,7 +23,6 @@ router.get('/search', async (req, res) => {
                     GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name`
                 break;
             case 'author':
-                // query = "SELECT b.book_id, b.book_title, b.copies_available, c.category_name, a.author_name FROM book as b JOIN category as c ON b.category_id = c.category_id JOIN book_author as ba ON ba.book_id = b.book_id JOIN author as a ON ba.author_id = a.author_id WHERE a.author_name LIKE ?"
                 query = `
                     SELECT b.book_id, b.book_title, b.copies_available, c.category_name, 
                             GROUP_CONCAT(a.author_name SEPARATOR ', ') AS authors
@@ -88,7 +86,6 @@ router.get('/issued-books', async (req,res)=>{
 })
 
 // 2. book issue.
-
 router.post('/issue', async (req, res) => {
     try {
         const { bookId, userId } = req.body;
@@ -180,118 +177,6 @@ router.post('/request', async (req, res) => {
     }
 
 })
-
-// 3. book return.
-router.post('/return', async (req, res) => {
-    try {
-        const { bookId, userId } = req.body;
-
-        if (!bookId || !userId) {
-            return res.status(401).json({ message: 'Missing required fields' });
-        }
-
-        // Check whether this book is issued by this user or not.
-        const issue_check = "SELECT book_id FROM book_issue WHERE book_id = ? AND user_id = ? and return_status = 0";
-        const [issueRes] = await db.query(issue_check, [bookId, userId]);
-
-        if (issueRes.length === 0) {
-            return res.status(200).json({ message: 'This book is not issued to you' });
-        }
-        
-        // Update the book's copies_available.
-        const increment_query = "UPDATE book SET copies_available = copies_available + 1 WHERE book_id = ?";
-        await db.query(increment_query, [bookId]);
-
-        const get_id = "SELECT * FROM book_issue as b WHERE b.return_status = ? AND b.book_id = ? AND b.user_id = ?";
-        const [issueIdRes] = await db.query(get_id, [0, bookId, userId]);
-        const issueId = issueIdRes[0].issue_id;
-        // Update return_date and return_status in book_issue table
-        const returnDate = new Date().toISOString().slice(0, 10); // Format as 'YYYY-MM-DD'
-        const update_query = "UPDATE book_issue SET return_date = ?, return_status = ? WHERE book_id = ? AND user_id = ? and return_status != 1";
-        await db.query(update_query, [returnDate, 1, bookId, userId]);
-
-
-        // Get fine amount
-        const fine_query = `
-            SELECT fine_amount 
-            FROM fine_due 
-            JOIN book_issue ON fine_due.fine_due_id = book_issue.issue_id
-            WHERE book_issue.issue_id = ?`;
-        const [fineRes] = await db.query(fine_query, [issueId]);
-
-        const fine = fineRes.length > 0 ? fineRes[0].fine_amount : 0;
-        // const fine = fineRes[0].fine_amount;
-
-        //Now check in the book_request table whether anyone has requested this book. In case of multiple requests, pick the one with least request_date
-        const request_query = "SELECT * FROM book_request WHERE book_id =? ORDER BY request_date ASC LIMIT 1";
-        const [requestRes] = await db.query(request_query, [bookId]);
-        //Insert this data as an issue int the book_issue table.
-        if (requestRes.length > 0) {
-            const nextRequest = requestRes[0];
-            const nextUserId = nextRequest.user_id;
-            const bookId = nextRequest.book_id;
-
-            // ✅ Notify the next user via email
-            const getEmailQuery = "SELECT email, name FROM users WHERE user_id = ?";
-            const [userRes] = await db.query(getEmailQuery, [nextUserId]);
-
-            if (userRes.length > 0) {
-                const email = userRes[0].email;
-                const name = userRes[0].name;
-
-                const bookQuery = "SELECT book_title FROM book WHERE book_id = ?";
-                const [bookRes] = await db.query(bookQuery, [bookId]);
-                const bookTitle = bookRes.length > 0 ? bookRes[0].book_title : "a book";
-
-                const message = `
-                Hi ${name},
-
-                Good news! The book "${bookTitle}" you requested has just become available and has been automatically issued to your account.
-
-                Please make sure to collect the book from the library.
-
-                Thank you,
-                Library Management System
-                `;
-
-
-                try {
-                    await sendMail({
-                        to: email,
-                        subject: `📚 Book Available: ${bookTitle}`,
-                        text: message
-                    });
-                    console.log("📧 Email sent to next user:", email);
-                } catch (emailErr) {
-                    console.error("❌ Failed to send email:", emailErr);
-                }
-            }
-
-            // Decrease the available copies again (book has just been returned and issued again)
-            const decrement_query = "UPDATE book SET copies_available = copies_available - 1 WHERE book_id = ?";
-            await db.query(decrement_query, [bookId]);
-
-            // Issue the book to the next requester
-            const newIssueDate = new Date().toISOString().slice(0, 10);
-            const issueQuery = "INSERT INTO book_issue (book_id, user_id, issue_date) VALUES (?, ?, ?)";
-            await db.query(issueQuery, [bookId, nextUserId, newIssueDate]);
-
-            // Delete the request from the book_request table
-            const deleteRequestQuery = "DELETE FROM book_request WHERE request_id = ?";
-            await db.query(deleteRequestQuery, [requestId]);
-
-            console.log("📖 Book issued to next requester:", nextUserId);
-
-        }
-        return res.status(200).json({ message: `Book returned successfully! Your fine for this book is ${fine}` });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Error returning book' });
-    }
-});
-
-// Instead of updating the tables directly in the database when a user make a return digitally, store that information in a new table called book_return. Now, the manager will have access to this table and can accept or reject the return. If accepted, the manager will update the book_issue table and delete the entry from book_return table. If rejected, the manager will delete the entry from book_return table and the user will be notified via email whether his return is accepted or rejected. This new table will have the following fields: return_id, book_id, user_id, return_date.
 
 
 // router for user to request return.

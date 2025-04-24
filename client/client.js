@@ -9,12 +9,6 @@ const rl = readline.createInterface({
 const serverUrl = 'http://localhost:8080'; // Adjust if needed
 let userId = null; // Store logged-in user's ID
 
-// Hardcoded test credentials
-const hardcodedUser = {
-    email: "testuser",
-    password: "test123",
-    userId: "user999"
-};
 
 // Login / Register Menu
 function showAuthMenu() {
@@ -665,7 +659,6 @@ function returnBook(input) {
         return;
     }
 
-    // axios.post(`${serverUrl}/book/return`, { bookId, userId })
     axios.post(`${serverUrl}/book/request-return`, { bookId, userId })
         .then(response => {
             console.log(`⚠️ ${response.data.message}`);

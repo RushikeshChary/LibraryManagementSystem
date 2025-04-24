@@ -4,10 +4,6 @@ import { sendMail } from '../utils/mailer.js';
 
 const router = express.Router();
 
-const manager_hardcoded = {
-    username: 'manager',
-    password: 'password',
-}
 
 // Manager login router.
 router.post('/login',async (req, res) => {
@@ -16,9 +12,6 @@ router.post('/login',async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-        // if (email!== manager_hardcoded.username || password!== manager_hardcoded.password) {
-        //     return res.status(401).json({ message: 'Invalid credentials' });
-        // }
         let [rows] = await db.query('SELECT * FROM manager WHERE email = ?', [email]);
         if (rows.length === 0) {
             return res.status(404).json({ message: 'Email does not exist! Please get yourself registered...' });
@@ -413,14 +406,6 @@ router.post('/manage-return', async (req, res) => {
     }
 });
 
-// Manager could delete all the successful book returns in the book_issue table.
-// router.delete('/book-returns', async (req, res) => {
-//     // Delete all successful book returns.
-//     query = "DELETE FROM book_issue WHERE return_status = 1";
-//     await db.query(query);
-//     // For demonstration purposes, we're just returning a success message.
-//     res.json({ message: 'All successful book returns deleted successfully' });
-// });
 
 
 

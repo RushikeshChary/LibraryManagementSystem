@@ -163,10 +163,6 @@ router.post('/recommendations', async (req, res) => {
     try {
         const [results] = await db.query(`CALL get_recommendations(?)`, [userId]);
 
-        // MySQL stored procedures return an array of result sets.
-        // For CALL, it's wrapped in another array, so:
-        // results[0] = collaborative
-        // results[1] = category-based
         const collaborative = results[0];
         const categoryBased = results[1];
 
@@ -253,9 +249,6 @@ router.get('/requested-books', async (req, res) => {
         WHERE br.user_id = ?
         GROUP BY b.book_id, b.book_title, b.copies_available, c.category_name`;
 
-        // const query = `SELECT book.book_title, book.book_id, br.request_date
-        // FROM book_request as br
-        // JOIN book ON br.book_id = book.book_id WHERE br.user_id = ?`;
         const [rows] = await db.query(query, [userId]);
         return res.status(200).json(rows);
 
