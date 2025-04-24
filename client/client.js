@@ -49,25 +49,25 @@ function showAuthMenu() {
 function login() {
     rl.question("👤 Enter email: ", email => {
         rl.question("🔑 Enter Password: ", password => {
-            if (email === hardcodedUser.email && password === hardcodedUser.password) {
-                userId = hardcodedUser.userId;
-                console.log(`✅ Hardcoded Login Successful! Welcome, ${userId}.`);
-                showMenu();
-                return;
-            }
-        axios.post(`${serverUrl}/user/login`, { email, password })
-            .then(response => {
-                if (!response.data || !response.data.userId || !response.data.username) {
-                    throw new Error("Invalid login response");
-                }
-                userId = response.data.userId;
-                console.log(`✅ Login Successful! Welcome, ${response.data.username}.`);
-                showMenu();
-            })
-            .catch(error => {
-                console.error("❌ Login Failed:", error.response?.data?.error || error.message);
-                showAuthMenu();
-            });
+            // if (email === hardcodedUser.email && password === hardcodedUser.password) {
+            //     userId = hardcodedUser.userId;
+            //     console.log(`✅ Hardcoded Login Successful! Welcome, ${userId}.`);
+            //     showMenu();
+            //     return;
+            // }
+            axios.post(`${serverUrl}/user/login`, { email, password })
+                .then(response => {
+                    if (!response.data || !response.data.userId || !response.data.username) {
+                        throw new Error("Invalid login response");
+                    }
+                    userId = response.data.userId;
+                    console.log(`✅ Login Successful! Welcome, ${response.data.username}.`);
+                    showMenu();
+                })
+                .catch(error => {
+                    console.error("❌ Login Failed:", error.response?.data?.error || error.message);
+                    showAuthMenu();
+                });
 
         });
     });
