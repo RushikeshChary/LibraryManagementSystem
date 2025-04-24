@@ -371,6 +371,36 @@ router.post('/manage-return', async (req, res) => {
             await db.query(deleteQuery, [returnId]);
 
             console.log("❌ Return request rejected successfully!");
+            // Notify the user via email regarding the rejection of return request.
+            const getEmailQuery = "SELECT email, name FROM user WHERE user_id = ?";
+            const [userRes] = await db.query(getEmailQuery, [checkResult[0].user_id]);
+            if (userRes.length > 0) {
+                const email = userRes[0].email;
+                const name = userRes[0].name;
+
+                const bookQuery = "SELECT book_title FROM book WHERE book_id = ?";
+                const [bookRes] = await db.query(bookQuery, [checkResult[0].book_id]);
+                const bookTitle = bookRes.length > 0 ? bookRes[0].book_title : "a book";
+
+                const message = `
+                Hi ${name},
+
+                Your return request for the book "${bookTitle}" has been rejected (probably because you did not return the phisical book yet). Please contact the library staff for further assistance.
+
+                Thank you,
+                Library Management System
+                `;
+                try {
+                    await sendMail({
+                        to: email,
+                        subject: `📚 Return Request Rejected: ${bookTitle}`,
+                        text: message
+                    });
+                    console.log("📧 Email sent to user:", email);
+                } catch (emailErr) {
+                    console.error("❌ Failed to send email:", emailErr);
+                }
+            }
             return res.status(200).json({ message: 'Return request rejected successfully' });
         }
         else

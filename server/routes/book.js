@@ -310,6 +310,12 @@ router.post('/request-return', async (req, res) => {
             return res.status(200).json({ message: 'This book is not issued to you' });
         }
 
+        // Check whether this user has already requested this book in book_return table.
+        const requestCheck = "SELECT * FROM book_return WHERE book_id = ? AND user_id = ?";
+        const [requestResult] = await db.query(requestCheck, [bookId, userId]);
+        if (requestResult.length > 0) {
+            return res.status(200).json({ message: 'This user has already requested return for this book' });
+        }
         // Add request to book_return table
         const returnDate = new Date().toISOString().slice(0, 10); // Format as 'YYYY-MM-DD'
         const requestQuery = "INSERT INTO book_return (book_id, user_id, return_date) VALUES (?, ?, ?)";
