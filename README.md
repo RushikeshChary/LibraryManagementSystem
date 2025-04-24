@@ -100,7 +100,7 @@ Start the Express backend server:
 node server.js
 ```
 
-> The backend will be running on `http://localhost:3000`
+> The backend will be running on `http://localhost:8080` or at port specified in your `.env` file.
 
 ---
 
