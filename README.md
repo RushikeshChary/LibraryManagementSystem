@@ -16,7 +16,7 @@ Before you begin, make sure you have the following installed:
 ## 📁 Folder Structure
 
 ```
-Library_managment_system/
+LibraryManagmentSystem/
 ├── data.sql               # SQL script to initialize the database
 ├── package.json           # Project metadata and dependencies
 ├── client/
@@ -43,11 +43,11 @@ If not already done:
 
 ```bash
 git clone https://github.com/RushikeshChary/LibraryManagementSystem.git
-cd Library_managment_system
+cd LibraryManagmentSystem
 ```
 
 
-### 1. Install Dependencies
+### 2. Install Dependencies
 
 Install the required packages:
 
@@ -57,7 +57,7 @@ npm install
 
 ---
 
-### 2. Configure Environment Variables
+### 3. Configure Environment Variables
 
 Create a `.env` file inside the `server/` folder:
 
@@ -72,17 +72,17 @@ Then open the `.env` file and add:
 DB_HOST=localhost
 DB_USER=your_mysql_user
 DB_PASSWORD=your_mysql_password
-DB_NAME=library_system
+DB_NAME=library_management_system
 
 EMAIL=Kamaopaisa216@gmail.com
 EMAIL_PASSWORD=zeiagkytiyuqtpkd
 ```
 
-> Replace the placeholder values with your actual MySQL and Firebase credentials.
+> Replace the placeholder values with your actual MySQL credentials.
 
 ---
 
-### 3. Set Up MySQL Database
+### 4. Set Up MySQL Database
 
 Run the following commands to create and populate the database:
 
@@ -92,7 +92,7 @@ mysql -u your_mysql_user -p < ../data.sql
 
 ---
 
-### 4. Start the Backend Server
+### 5. Start the Backend Server
 
 Start the Express backend server:
 
@@ -104,7 +104,7 @@ node server.js
 
 ---
 
-### 5. Run the CLI Client
+### 6. Run the CLI Client
 
 In a new terminal window/tab, run:
 
