@@ -42,7 +42,7 @@ Library_managment_system/
 If not already done:
 
 ```bash
-git clone https://github.com/your-username/library-management-system.git
+git clone https://github.com/RushikeshChary/LibraryManagementSystem.git
 cd Library_managment_system
 ```
 
