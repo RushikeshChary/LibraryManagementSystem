@@ -74,11 +74,11 @@ DB_USER=your_mysql_user
 DB_PASSWORD=your_mysql_password
 DB_NAME=library_management_system
 
-EMAIL=Kamaopaisa216@gmail.com
-EMAIL_PASSWORD=zeiagkytiyuqtpkd
+EMAIL=your_email@gmail.com
+EMAIL_PASSWORD=your_password
 ```
 
-> Replace the placeholder values with your actual MySQL credentials.
+> Replace the placeholder values with your actual MySQL and email credentials.
 
 ---
 
